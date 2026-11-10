@@ -22,16 +22,21 @@
 
 | 位置 | 大きさ | 中身 |
 | --- | --- | --- |
-| (0, 0) | 2×2.5 | ウィジェット: Google 時計 `com.google.android.deskclock/com.android.alarmclock.DigitalAppWidgetProvider` |
+| (0, 0) | 2×2.5 | 内蔵: 時計 |
 | (2.5, 0.5) | 1×1 | 透明なタップ領域 → Google カレンダー |
-| (0, 1.5) | 2×1.5 | ウィジェット: Yahoo!天気 `jp.co.yahoo.android.weather.type1/jp.co.yahoo.android.weather.feature.widget.ForecastWidgetReceiver` |
-| (0, 3) | 4×1.5 | ウィジェット: aCalendar 予定一覧 `org.withouthat.acalendar/org.withouthat.acalendar.agenda.AgendaWidget` |
-| (1,3) (0,3.5) (1.5,3.5) (1.5,4) | 各 1×1 | 透明なタップ領域 → Google カレンダー（aCalendar の上に重ねる） |
+| (0, 1.5) | 2×1.5 | 内蔵: 天気 |
+| (0, 3) | 4×1.5 | 内蔵: 予定一覧 |
 | (0, 4) | 4×2 | ウィジェット: Apple Music `com.apple.android.music/com.apple.android.music.widget.AppleMusicWidget` |
 | (0, 4.5) | 1×1 | 透明なタップ領域 → Apple Music |
 | (0..3, 6) | 各 1×1 | LINE / X / Chrome / YouTube（`app.revanced.android.youtube`）。白線の丸いカスタムアイコン、ラベルなし |
 
 自作では「透明なアイコン」ではなく、ウィジェットの上に置く**タップ領域**として定義する。
+
+### 内蔵パネル（他のアプリのウィジェットの代わりにランチャーが自分で描く）
+
+- 時計: 日付と時刻。表記は英字
+- 天気: 気象庁の予報データ（東京地方）。今日から3日分の天気・最高/最低気温・降水確率。表記は英字。ホームを開いたときに古ければ取り直し、常駐しない
+- 予定一覧: 端末のカレンダー（Google カレンダーの同期分）を読む。今日から3日分。タップでその予定を Google カレンダーで開く
 
 重なりの上下: ウィジェットとアイコンは後から置いた方が上。タップ領域は常にウィジェットより上（押せるように）。
 
@@ -75,3 +80,5 @@
 
 - 常にダーク、縦画面固定、壁紙はスクロールしない
 - フォルダのアイコンは円形、フォルダは窓で開く
+- モノクロ基調で統一する。アイコンは同じ形の枠に白い単色の絵柄を同じ大きさで置く
+- ホーム・ドックのアイコンは線の太さを揃えた自作の絵柄。ドロワーは各アプリの単色版アイコン（Android の themed icon）を使い、無いアプリだけ自作する
