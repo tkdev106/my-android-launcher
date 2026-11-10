@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Launcher</string>
+    <string name="edit_mode">ランチャーの編集</string>
+    <string name="accessibility_label">ランチャーのジェスチャー</string>
+    <string name="accessibility_description">ホームのジェスチャーで、通知・最近使ったアプリ・クイック設定を開き、画面を消すために使います。画面の内容は読みません。</string>
+    <string name="media_listener_label">ランチャーの再生中の曲</string>
+    <string name="search_hint">Search apps</string>
 </resources>

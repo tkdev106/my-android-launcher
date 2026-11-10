@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 全体操作（通知・最近使ったアプリ・クイック設定・画面を消す）にだけ使う。画面の中身もイベントも受け取らない -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:canRetrieveWindowContent="false"
+    android:description="@string/accessibility_description"
+    android:isAccessibilityTool="false"
+    android:notificationTimeout="0" />

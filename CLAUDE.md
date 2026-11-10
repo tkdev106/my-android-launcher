@@ -7,7 +7,7 @@
 | --- | --- |
 | 何を作るか・作らないか | `docs/spec.md`（ドロワーのフォルダの初期値は `docs/drawer-folders.json`） |
 | 次に何をやるか | `docs/backlog.md` |
-| カスタムアイコン | `assets/icons/` |
+| ホーム・ドックの自作の絵柄 | `app/src/main/res/drawable/ic_*.xml` |
 
 **文書はこの3つから増やさない。** 決めたことはこのファイルか `docs/spec.md` に1〜2行で足す。設計書や ADR の類は作らない。
 
@@ -24,7 +24,7 @@
 
 - 素の View と Kotlin だけで書く（AndroidX・Compose は入れない）。実行時の依存ライブラリはゼロ、テストに JUnit 4 だけ
 - Android に依存しない判断は `:core`（JVM のモジュール）に置き、`:app` は画面とシステムとの結合だけにする
-- 配置・フォルダ・アイコンの差し替えはアプリ内の JSON ファイル1つに保存する。minSdk 36、compile/targetSdk 37
+- 設定はアプリ内の JSON ファイル1つに保存する。minSdk・compileSdk・targetSdk とも 37（Android 17）
 
 ## 守ること
 

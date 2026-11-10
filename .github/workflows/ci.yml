@@ -35,3 +35,34 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+  # エミュレータでホームとして起動し、落ちないことを確かめ、画面を成果物に残す
+  smoke:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug
+      - name: KVM を使えるようにする
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 37
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: ./.github/smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke
+          path: smoke/
