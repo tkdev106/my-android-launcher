@@ -52,15 +52,23 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 37
-          target: google_apis
-          arch: x86_64
-          profile: pixel_7
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./.github/smoke.sh
+      # Android 17 の系の名前（android-37.0 など）に追いついていない runner の action は使わず、sdkmanager で直に立てる
+      - name: エミュレータを立てて smoke を走らせる
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
+          yes | sdkmanager --licenses > /dev/null || true
+          IMG=$(sdkmanager --list 2>/dev/null | grep -oE 'system-images;android-37[^ ;|]*;google_apis;x86_64' | sort -u | head -1)
+          echo "system image: $IMG"
+          test -n "$IMG"
+          sdkmanager --install emulator platform-tools "$IMG" > /dev/null
+          echo no | avdmanager create avd -n smoke -k "$IMG" -d pixel_7
+          emulator -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none > emulator.log 2>&1 &
+          adb wait-for-device
+          timeout 600 sh -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 5; done'
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          ./.github/smoke.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
