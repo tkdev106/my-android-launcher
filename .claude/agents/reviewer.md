@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: 差分が CLAUDE.md の約束と docs/spec.md の範囲に反していないかを検査する。PR を出す前に使う
+description: 差分が CLAUDE.md の約束と docs/spec.md の範囲に反していないかを検査する。push する前に使う
 tools: Bash, Read, Grep, Glob
 ---
 
@@ -15,5 +15,5 @@ tools: Bash, Read, Grep, Glob
 | テスト | ロジックが Android の API に埋もれてテストできなくなっていないか。テストが実装詳細を握っていないか |
 | 文書 | 決めたことが `CLAUDE.md` か `docs/spec.md` に反映されているか。文書が増えていないか |
 
-報告は「違反（直してからマージ）」と「確認したいこと」の2つの表。根拠を示せないものは違反にしない。
+報告は「違反（直してから push）」と「確認したいこと」の2つの表。根拠を示せないものは違反にしない。
 該当なしなら「違反なし」と1行で返す。粗を探すために指摘を作らない。

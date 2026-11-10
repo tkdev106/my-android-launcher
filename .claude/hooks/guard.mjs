@@ -55,13 +55,12 @@ for (const segment of segments) {
   const [sub, ...args] = t.slice(gi + 1).filter((x, i, a) => !(a[i - 1] === '-C'));
   const plain = args.filter((a) => !a.startsWith('-'));
 
+  // main への直接 push は許す（CLAUDE.md「進め方」）。履歴を書き換える push だけを止める
   if (sub === 'push') {
-    if (plain.some((a) => a === TRUNK || a.endsWith(`:${TRUNK}`)))
-      deny('main への直接 push は禁止です。作業ブランチを切って PR にしてください。');
-    if (plain.length <= 1 && currentBranch() === TRUNK)
-      deny('main の上から push しようとしています。作業ブランチを切ってください。');
     if (args.some((a) => a === '--force' || a === '-f'))
       deny('force push は禁止です。必要なら --force-with-lease を使ってください。');
+    if (args.includes('--force-with-lease') && (plain.includes(TRUNK) || (plain.length <= 1 && currentBranch() === TRUNK)))
+      deny('main の履歴は書き換えません。');
   }
   if (sub === 'add' && args.some((a) => ['-A', '--all', '.', '-u'].includes(a)))
     deny('一括の stage は禁止です。コミットに入れるファイルを明示してください。');
