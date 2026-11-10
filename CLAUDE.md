@@ -14,11 +14,17 @@
 ## コマンド
 
 ```
-./gradlew verify   # 完了の定義。lint → testDebugUnitTest → assembleDebug（B-1 で用意する）
+./gradlew verify   # 完了の定義。lint → 単体テスト（`:core:test` と `testDebugUnitTest`）→ assembleDebug
 ```
 
 **完了の定義は `./gradlew verify` が緑になること。** CI（`.github/workflows/ci.yml`）が同じものを走らせ、デバッグ APK を成果物に出す。
 テストを skip・無効化して緑にしない。lint の規則を緩めて緑にしない。
+
+## 技術
+
+- 素の View と Kotlin だけで書く（AndroidX・Compose は入れない）。実行時の依存ライブラリはゼロ、テストに JUnit 4 だけ
+- Android に依存しない判断は `:core`（JVM のモジュール）に置き、`:app` は画面とシステムとの結合だけにする
+- 配置・フォルダ・アイコンの差し替えはアプリ内の JSON ファイル1つに保存する。minSdk 36、compile/targetSdk 37
 
 ## 守ること
 
