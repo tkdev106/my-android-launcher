@@ -66,7 +66,9 @@ class DrawerTest {
     }
 
     @Test
-    fun `検索は名前の部分一致で、フォルダの中のアプリも出す`() {
+    fun `検索は名前の部分一致で、フォルダに入れて一覧本体から隠したアプリも出す`() {
+        val folders = listOf(Folder("Travel", listOf(AppKey("com.google.android.apps.maps"))))
+        assertTrue(Drawer.entries(installed, folders, order).none { it is DrawerEntry.App && it.app == maps })
         assertEquals(listOf(maps), Drawer.search("ap", installed, order))
     }
 

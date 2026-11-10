@@ -74,7 +74,6 @@ class NowPlayingSource(private val context: Context, private val onChanged: (Now
         if (c.playbackState?.state == PlaybackState.STATE_PLAYING) c.transportControls.pause() else c.transportControls.play()
     }
 
-    /** 再生中のアプリを開く。何も無ければ Apple Music を開く */
     fun open(from: View, catalog: AppCatalog) {
         val c = controller
         val pending = c?.sessionActivity

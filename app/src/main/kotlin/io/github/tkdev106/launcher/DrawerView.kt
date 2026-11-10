@@ -71,7 +71,6 @@ class DrawerView(
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
                 override fun afterTextChanged(s: Editable?) = showResults()
             })
-            // 確定キーでは先頭の結果を開く
             setOnEditorActionListener { v, _, _ ->
                 val first = Drawer.search(text.toString(), installed, order).firstOrNull()
                 if (first != null) onLaunch(first, v)
@@ -100,7 +99,6 @@ class DrawerView(
         showResults()
     }
 
-    /** 開くたびに1ページ目・空の検索から始める */
     fun reset() {
         search.setText("")
         search.clearFocus()

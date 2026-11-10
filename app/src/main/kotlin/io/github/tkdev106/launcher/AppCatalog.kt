@@ -57,7 +57,6 @@ class AppCatalog(private val context: Context) {
 
     fun label(key: AppKey): String = key.resolve(apps)?.label ?: key.packageName
 
-    /** 押した場所から開くアニメーションにする */
     fun launch(key: AppKey, from: View?) {
         val info = info(key)
         if (info == null) {

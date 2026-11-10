@@ -23,7 +23,6 @@ class IconView(context: Context) : View(context) {
         isFocusable = true
     }
 
-    /** cacheKey が同じなら描き直さない。make は裏の線で呼ばれる */
     fun load(cacheKey: Any, make: () -> Bitmap?) {
         if (cacheKey == requestKey && bitmap != null) return
         requestKey = cacheKey

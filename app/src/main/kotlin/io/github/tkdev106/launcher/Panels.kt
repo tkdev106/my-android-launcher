@@ -22,7 +22,7 @@ import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** 時計（docs/spec.md「内蔵パネル」）。分が変わるたびにホームが update を呼ぶ */
+/** 自分で毎分の放送を受けず、ホームの1つの受け口から update してもらう（受け口を増やさないため） */
 class ClockPanel(context: Context) : LinearLayout(context) {
     private val time = Ui.text(context, 110f, Ui.serif(context)).apply { letterSpacing = -0.02f }
     private val date = Ui.text(context, 11f, Ui.mono(context), Ui.TEXT, 0.2f)
@@ -46,7 +46,6 @@ fun weatherIcon(kind: WeatherKind?): Int = when (kind) {
     else -> R.drawable.ic_weather_cloudy
 }
 
-/** 天気。今日は大きく、明日・明後日は最低〜最高を線の長さで比べる */
 class WeatherPanel(context: Context) : LinearLayout(context) {
     private val todayIcon = ImageView(context)
     private val todayTemp = Ui.text(context, 50f, Ui.serif(context))
@@ -130,7 +129,6 @@ class WeatherPanel(context: Context) : LinearLayout(context) {
     }
 }
 
-/** 予定一覧。3件まで、左に日時・右に題名。行のタップでその予定を開く */
 class AgendaPanel(context: Context, private val onOpen: (AgendaLine) -> Unit) : LinearLayout(context) {
     init {
         orientation = VERTICAL
@@ -230,7 +228,6 @@ class NowPlayingPanel(
     }
 }
 
-/** アイコンの丸1つ（ホームのアプリ・ドック）。絵が無ければ空の丸 */
 fun circleButton(context: Context, label: String, sizePx: Int, bitmap: () -> Bitmap, onClick: (View) -> Unit): IconView =
     IconView(context).apply {
         contentDescription = label

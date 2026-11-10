@@ -12,7 +12,6 @@ import io.github.tkdev106.launcher.core.CalendarEvent
 import java.time.LocalDateTime
 import java.time.ZoneId
 
-/** 端末のカレンダー（Google カレンダーの同期分）から予定を読む。許可が無ければ空 */
 class CalendarSource(private val context: Context) {
 
     fun lines(now: LocalDateTime, zone: ZoneId): List<AgendaLine> {

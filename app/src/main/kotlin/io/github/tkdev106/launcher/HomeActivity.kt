@@ -54,8 +54,10 @@ class HomeActivity : Activity() {
     private var config: LauncherConfig? = null
     private var overlayBack: OnBackInvokedCallback? = null
 
+    private var agendaReadAt = 0L
+
     private val tick = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = updateClockAndAgenda()
+        override fun onReceive(context: Context, intent: Intent) = updateClockAndAgenda(force = false)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,17 +132,21 @@ class HomeActivity : Activity() {
         nowPlayingSource.stop()
     }
 
-    /** ホームボタンでは、開いているドロワーやフォルダを閉じてホームに戻す */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         folder.close()
         closeDrawer()
     }
 
-    private fun updateClockAndAgenda() {
+    /** カレンダーは毎分は読まず、15分ごとと画面に戻ったときだけ読む（毎分の読み出しは軽さに響くため） */
+    private fun updateClockAndAgenda(force: Boolean = true) {
         val now = LocalDateTime.now()
         clock.update(now)
-        agenda.update(calendar.lines(now, ZoneId.systemDefault()))
+        val t = System.currentTimeMillis()
+        if (force || t - agendaReadAt >= 15 * 60 * 1000L) {
+            agendaReadAt = t
+            agenda.update(calendar.lines(now, ZoneId.systemDefault()))
+        }
     }
 
     private fun bindConfig(force: Boolean) {
@@ -167,7 +173,6 @@ class HomeActivity : Activity() {
         }
     }
 
-    /** ドックは5列。1列目と5列目にフォルダ、3列目にアプリ一覧ボタン、2・4列目は空ける */
     private fun bindDock(c: LauncherConfig) {
         dock.removeAllViews()
         val size = dp(52)
@@ -200,7 +205,6 @@ class HomeActivity : Activity() {
         }
     }
 
-    /** ユーザー補助が有効でなければ、その設定画面へ案内する */
     private fun global(action: Int) {
         if (GestureAccessibilityService.perform(action)) return
         Toast.makeText(this, "ユーザー補助の「${getString(R.string.accessibility_label)}」をオンにしてください", Toast.LENGTH_LONG).show()
@@ -234,7 +238,6 @@ class HomeActivity : Activity() {
         overlayChanged()
     }
 
-    /** ドロワーかフォルダが開いている間だけ「戻る」で閉じられるようにする */
     private fun overlayChanged() {
         val open = drawer.visibility == View.VISIBLE || folder.visibility == View.VISIBLE
         if (open && overlayBack == null) {

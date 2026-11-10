@@ -40,7 +40,6 @@ class IconFactory(private val context: Context) {
 
     fun clear() = cache.evictAll()
 
-    /** 丸の大きさ sizePx、縁を付けるか */
     fun app(key: AppKey, sizePx: Int, border: Boolean = true, fill: Int = Ui.CIRCLE): Bitmap =
         remember("app:${key.flatten()}:$sizePx:$border:$fill") {
             val bmp = base(sizePx, border, fill)
@@ -50,7 +49,6 @@ class IconFactory(private val context: Context) {
             bmp
         }
 
-    /** フォルダの丸。中に入っているアプリの単色版アイコンを4つまで、2×2 に並べる */
     fun folder(name: String, apps: List<AppKey>, sizePx: Int): Bitmap =
         remember("folder:$name:${apps.joinToString { it.packageName }}:$sizePx") {
             val bmp = base(sizePx, border = true, fill = Ui.CIRCLE)
@@ -70,7 +68,7 @@ class IconFactory(private val context: Context) {
             bmp
         }
 
-    /** 自作の絵柄か選んだ画像。icon が null なら null を返し、呼び出し側がアプリのアイコンで描く */
+    /** icon が null なら null。アプリのアイコンでの描き方は呼び出し側で丸の色と縁が違うため、ここでは決めない */
     fun custom(icon: String?, sizePx: Int, fill: Int = Ui.CIRCLE, border: Boolean = false): Bitmap? {
         val ref = IconRef.parse(icon) ?: return null
         return remember("custom:$icon:$sizePx:$fill:$border") {

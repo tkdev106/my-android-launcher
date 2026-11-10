@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.view.View
 import io.github.tkdev106.launcher.Ui.dp
 
-/** ドロワーの下のページの点。今のページだけ白く、ほかは薄く */
 class PageDots(context: Context) : View(context) {
     private val on = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ui.TEXT }
     private val off = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ui.TEXT; alpha = 77 }

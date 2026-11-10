@@ -38,7 +38,6 @@ class FolderWindow(context: Context, private val onLaunch: (AppKey, View) -> Uni
 
     val isOpen get() = visibility == VISIBLE
 
-    /** 閉じ終わったとき（ホームのジェスチャーを戻すため） */
     var onClosed: () -> Unit = {}
 
     fun open(name: String, apps: List<AppKey>) {

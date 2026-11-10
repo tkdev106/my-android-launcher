@@ -29,7 +29,6 @@ class PagedGrid(context: Context, private val columns: Int, private val rows: In
         private set
     var onPageChanged: (Int) -> Unit = {}
 
-    /** 下へ大きく払ったら閉じる（ドロワーを閉じるため） */
     var onSwipeDown: () -> Unit = {}
 
     val pageCount get() = maxOf(1, (childCount + columns * rows - 1) / (columns * rows))

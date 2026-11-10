@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
-    <!-- ドロワーに並べる起動できるアプリと、予定を開く Google カレンダーを見えるようにする -->
+    <!-- Android 11 以降の見える範囲の制限で、ドロワーに並べるアプリが欠けないようにする -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />

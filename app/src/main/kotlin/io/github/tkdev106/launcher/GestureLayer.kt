@@ -28,7 +28,6 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
     private var downTime = 0L
     private var downOnEmpty = false
 
-    /** ドロワーやフォルダが開いているあいだは止める */
     var active = true
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {

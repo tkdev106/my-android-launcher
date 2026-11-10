@@ -25,7 +25,6 @@ class GestureAccessibilityService : AccessibilityService() {
         @Suppress("StaticFieldLeak")
         private var instance: GestureAccessibilityService? = null
 
-        /** サービスが有効でなければ false を返す */
         fun perform(action: Int): Boolean = instance?.performGlobalAction(action) ?: false
     }
 }
