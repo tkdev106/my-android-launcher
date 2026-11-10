@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # エミュレータで APK を入れてホームとして起動し、落ちないことと主な画面の見た目を確かめる。
 # 実際のウィジェット相当の中身（天気・予定・再生中の曲）や Pixel 7 での見た目は端末で確かめる。
-set -euo pipefail
+set -euxo pipefail
 PKG=io.github.tkdev106.launcher
 OUT=smoke
 mkdir -p "$OUT"
@@ -9,7 +9,7 @@ mkdir -p "$OUT"
 adb install -r -g app/build/outputs/apk/debug/app-debug.apk
 adb shell cmd package set-home-activity "$PKG/.HomeActivity"
 adb logcat -c
-adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.HOME
+timeout 60 adb shell am start -a android.intent.action.MAIN -c android.intent.category.HOME
 sleep 6
 adb exec-out screencap -p > "$OUT/home.png"
 
@@ -35,9 +35,10 @@ adb shell input keyevent KEYCODE_BACK
 sleep 1
 
 # 編集モード（2本指のジェスチャーは adb から送れないので直接開く）
-adb root >/dev/null 2>&1 || true
+timeout 30 adb root >/dev/null 2>&1 || true
+timeout 60 adb wait-for-device || true
 sleep 2
-adb shell am start -W -n "$PKG/.EditActivity" || true
+timeout 60 adb shell am start -n "$PKG/.EditActivity" || true
 sleep 3
 adb exec-out screencap -p > "$OUT/edit.png"
 adb shell input keyevent KEYCODE_HOME
