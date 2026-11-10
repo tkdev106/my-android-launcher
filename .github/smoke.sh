@@ -15,32 +15,41 @@ report() {
 }
 trap report EXIT
 
+# エミュレータでは adb shell の cmd がときどき Broken pipe で落ちるので、端末操作は数回まで繰り返す
+sh_retry() {
+  for i in 1 2 3 4 5; do
+    adb shell "$@" && return 0
+    sleep 3
+  done
+  return 1
+}
+
 adb install -r -g app/build/outputs/apk/debug/app-debug.apk
-adb shell cmd package set-home-activity "$PKG/.HomeActivity"
+sh_retry cmd package set-home-activity "$PKG/.HomeActivity"
 adb logcat -c
-timeout 60 adb shell am start -a android.intent.action.MAIN -c android.intent.category.HOME
+sh_retry am start -a android.intent.action.MAIN -c android.intent.category.HOME
 sleep 6
 adb exec-out screencap -p > "$OUT/home.png"
 
 # 上へスワイプでアプリ一覧
-adb shell input swipe 540 1700 540 700 250
+sh_retry input swipe 540 1700 540 700 250
 sleep 3
 adb exec-out screencap -p > "$OUT/drawer.png"
 # 検索
-adb shell input text "se"
+sh_retry input text "se"
 sleep 2
 adb exec-out screencap -p > "$OUT/search.png"
-adb shell input keyevent KEYCODE_HOME
+sh_retry input keyevent KEYCODE_HOME
 sleep 2
 adb exec-out screencap -p > "$OUT/home-again.png"
 
 # ドックの1列目（決済フォルダ）を押して窓を開く
 W=$(adb shell wm size | sed -E 's/.* ([0-9]+)x([0-9]+).*/\1/')
 H=$(adb shell wm size | sed -E 's/.* ([0-9]+)x([0-9]+).*/\2/')
-adb shell input tap $((W / 10)) $((H - H * 9 / 100))
+sh_retry input tap $((W / 10)) $((H - H * 9 / 100))
 sleep 2
 adb exec-out screencap -p > "$OUT/folder.png"
-adb shell input keyevent KEYCODE_BACK
+sh_retry input keyevent KEYCODE_BACK
 sleep 1
 
 # 編集モード（2本指のジェスチャーは adb から送れないので直接開く）
@@ -50,7 +59,7 @@ sleep 2
 timeout 60 adb shell am start -n "$PKG/.EditActivity" || true
 sleep 3
 adb exec-out screencap -p > "$OUT/edit.png"
-adb shell input keyevent KEYCODE_HOME
+sh_retry input keyevent KEYCODE_HOME
 
 adb logcat -d > "$OUT/logcat.txt"
 trap - EXIT

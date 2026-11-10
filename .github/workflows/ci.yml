@@ -74,6 +74,9 @@ jobs:
           emulator -accel-check || true
           timeout 300 adb wait-for-device || { cat smoke/emulator.log; exit 1; }
           timeout 600 sh -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 5; done' || { tail -50 smoke/emulator.log; exit 1; }
+          # boot_completed の直後は系のサービスがまだ入れ替わり、adb の cmd が Broken pipe で落ちる。落ち着くまで待つ
+          sleep 30
+          timeout 120 sh -c 'until adb shell cmd input >/dev/null 2>&1 && adb shell settings get global adb_enabled >/dev/null 2>&1; do sleep 3; done'
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
