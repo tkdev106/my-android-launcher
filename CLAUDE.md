@@ -17,7 +17,7 @@
 ./gradlew verify   # 完了の定義。lint → 単体テスト（`:core:test` と `testDebugUnitTest`）→ assembleDebug
 ```
 
-**完了の定義は `./gradlew verify` が緑になること。** CI（`.github/workflows/ci.yml`）が同じものを走らせ、デバッグ APK を成果物に出す。続けてエミュレータでホームとして起動し、落ちないことを確かめて画面を成果物に残す（`.github/smoke.sh`）。
+**完了の定義は `./gradlew verify` が緑になること。** CI（`.github/workflows/ci.yml`）が同じものを走らせ、デバッグ APK を成果物に出す。ホームとしての起動は手元の Pixel 7 で確かめる。
 テストを skip・無効化して緑にしない。lint の規則を緩めて緑にしない。
 
 ## 技術
