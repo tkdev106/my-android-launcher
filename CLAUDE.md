@@ -5,7 +5,7 @@
 
 | 知りたいこと | ファイル |
 | --- | --- |
-| 何を作るか・作らないか | `docs/spec.md`（ドロワーのフォルダの初期値は `docs/drawer-folders.json`） |
+| 何を作るか・作らないか | `docs/spec.md` |
 | 次に何をやるか | `docs/backlog.md` |
 | ホーム・ドックの自作の絵柄 | `app/src/main/res/drawable/ic_*.xml` |
 

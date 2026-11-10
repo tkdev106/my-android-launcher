@@ -7,7 +7,7 @@ object DefaultConfig {
      * installed は、パッケージ名が分からないアプリ（Muse）を名前で探すために使う。
      * 見つからなければそのアプリはフォルダに入れない（後から編集モードで足せる）。
      */
-    fun create(novaFolders: List<Folder>, installed: List<InstalledApp>): LauncherConfig {
+    fun create(installed: List<InstalledApp>): LauncherConfig {
         val muse = installed.firstOrNull { it.label.trim().equals("Muse", ignoreCase = true) }?.key
         return LauncherConfig(
             homeApps = listOf(
@@ -27,8 +27,8 @@ object DefaultConfig {
             ),
             dockRight = Folder("AI", listOfNotNull(AppKey("com.anthropic.claude"), muse), IconRef.builtin("ai")),
             drawerButtonIcon = IconRef.builtin("drawer"),
-            // 一覧の先頭はフォルダ名の順（spec の並び）
-            drawerFolders = novaFolders.sortedBy { it.name },
+            // ドロワーのアプリを勝手にまとめない。フォルダは編集モードで作ったものだけ
+            drawerFolders = emptyList(),
         )
     }
 }

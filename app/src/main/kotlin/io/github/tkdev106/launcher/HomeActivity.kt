@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
@@ -47,6 +48,7 @@ class HomeActivity : Activity() {
     private lateinit var nowPlayingSource: NowPlayingSource
     private lateinit var appsRow: LinearLayout
     private lateinit var dock: LinearLayout
+    private lateinit var home: LinearLayout
     private lateinit var drawer: DrawerView
     private lateinit var folder: FolderWindow
 
@@ -65,14 +67,15 @@ class HomeActivity : Activity() {
         root = GestureLayer(this, ::onGesture)
 
         clock = ClockPanel(this)
-        weather = WeatherPanel(this)
-        agenda = AgendaPanel(this) { calendar.open(it) }
-        nowPlaying = NowPlayingPanel(this, onOpen = { nowPlayingSource.open(it, catalog) }, onToggle = { nowPlayingSource.toggle() })
-        nowPlayingSource = NowPlayingSource(this) { nowPlaying.update(it) }
+        weather = WeatherPanel(this) { weatherSource.openYahoo() }
+        agenda = AgendaPanel(this, onOpen = { calendar.open(it) }, onAllow = { requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR), CALENDAR_REQUEST) })
+        nowPlaying = NowPlayingPanel(this, onOpen = { nowPlayingSource.open(it, catalog) }, onToggle = { nowPlayingSource.toggle() },
+            onAllow = { nowPlayingSource.openAccessSettings() })
+        nowPlayingSource = NowPlayingSource(this) { state, access -> nowPlaying.update(state, access) }
         appsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         dock = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
 
-        val home = LinearLayout(this).apply {
+        home = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(32), dp(20), dp(16))
             addView(clock)
@@ -83,7 +86,7 @@ class HomeActivity : Activity() {
             addView(appsRow, lp(top = 22))
             addView(dock, lp(top = 12))
         }
-        drawer = DrawerView(this, onLaunch = { app, v -> catalog.launch(app.key, v) }, onOpenFolder = { f, _ -> openFolder(f.name, f.apps.map { it.key }) }, onClose = ::closeDrawer)
+        drawer = DrawerView(this, onLaunch = { app, v -> catalog.launch(app.key, v) }, onOpenFolder = { f, v -> openFolder(f.apps.map { it.key }, v) }, onClose = ::closeDrawer)
         drawer.visibility = View.GONE
         folder = FolderWindow(this) { key, v -> catalog.launch(key, v) }
         folder.onClosed = ::overlayChanged
@@ -145,7 +148,7 @@ class HomeActivity : Activity() {
         val t = System.currentTimeMillis()
         if (force || t - agendaReadAt >= 15 * 60 * 1000L) {
             agendaReadAt = t
-            agenda.update(calendar.lines(now, ZoneId.systemDefault()))
+            agenda.update(calendar.lines(now, ZoneId.systemDefault()), calendar.permitted)
         }
     }
 
@@ -183,7 +186,7 @@ class HomeActivity : Activity() {
         }
         fun folderButton(f: Folder) = circleButton(this, f.name, size, {
             icons.custom(f.icon, size, Ui.CIRCLE_DOCK, border = true) ?: icons.folder(f.name, f.apps, size)
-        }) { openFolder(f.name, f.apps) }
+        }) { openFolder(f.apps, it) }
         slot(folderButton(c.dockLeft))
         slot(null)
         slot(circleButton(this, "アプリ一覧", size, {
@@ -218,6 +221,8 @@ class HomeActivity : Activity() {
         drawer.alpha = 0f
         drawer.translationY = dp(40).toFloat()
         drawer.animate().alpha(1f).translationY(0f).setDuration(180).start()
+        // ドロワーの背景は壁紙だけにする（ホームの時計や天気が透けて重ならないように）
+        home.animate().alpha(0f).setDuration(150).withEndAction { home.visibility = View.INVISIBLE }.start()
         root.active = false
         overlayChanged()
     }
@@ -225,6 +230,8 @@ class HomeActivity : Activity() {
     private fun closeDrawer() {
         if (drawer.visibility != View.VISIBLE) return
         drawer.hideKeyboard()
+        home.visibility = View.VISIBLE
+        home.animate().alpha(1f).setDuration(150).start()
         drawer.animate().alpha(0f).translationY(dp(40).toFloat()).setDuration(150).withEndAction {
             drawer.visibility = View.GONE
             overlayChanged()
@@ -232,8 +239,8 @@ class HomeActivity : Activity() {
         root.active = true
     }
 
-    private fun openFolder(name: String, apps: List<io.github.tkdev106.launcher.core.AppKey>) {
-        folder.open(name, apps)
+    private fun openFolder(apps: List<io.github.tkdev106.launcher.core.AppKey>, anchor: View) {
+        folder.open(apps, anchor)
         root.active = false
         overlayChanged()
     }
@@ -253,7 +260,7 @@ class HomeActivity : Activity() {
         }
     }
 
-    /** カレンダーと位置の許可は初回に1度だけ聞く。断られたらその部品は空のまま（編集モードから聞き直せる） */
+    /** カレンダーと位置の許可は初回に1度だけ聞く。断られても、予定の1行や編集モードから聞き直せる */
     private fun askPermissionsOnce() {
         val prefs = getSharedPreferences("home", MODE_PRIVATE)
         if (prefs.getBoolean("askedPermissions", false)) return
@@ -265,6 +272,14 @@ class HomeActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // 2回断ると Android はもう聞いてくれないので、アプリの設定画面から許可してもらう
+        if (requestCode == CALENDAR_REQUEST && !calendar.permitted && !shouldShowRequestPermissionRationale(Manifest.permission.READ_CALENDAR)) {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)))
+        }
         updateClockAndAgenda()
+    }
+
+    companion object {
+        private const val CALENDAR_REQUEST = 2
     }
 }

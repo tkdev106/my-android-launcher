@@ -113,3 +113,27 @@ object JmaForecast {
         }
     }
 }
+
+/**
+ * アメダスの観測（10分ごと）から今の気温を読む。予報の気温の観測点（JmaArea.station）はアメダスの観測点番号と同じ。
+ * 予報には「今の気温」が無いので、観測を別に取る。
+ */
+object Amedas {
+    const val LATEST_TIME_URL = "https://www.jma.go.jp/bosai/amedas/data/latest_time.txt"
+
+    /** latest は latest_time.txt の中身（例 `2026-11-11T07:50:00+09:00`）。観測は3時間ごとのファイルに分かれている */
+    fun pointUrl(station: String, latest: String): String {
+        val t = OffsetDateTime.parse(latest.trim())
+        val block = t.hour / 3 * 3
+        return "https://www.jma.go.jp/bosai/amedas/data/point/$station/%04d%02d%02d_%02d.json".format(t.year, t.monthValue, t.dayOfMonth, block)
+    }
+
+    /** 観測ファイル（`{"yyyyMMddHHmmss": {"temp": [値, 品質], ...}}`）のうち、気温がある最新の値を四捨五入して返す */
+    fun latestTemp(text: String): Int? {
+        val root = Json.parse(text) as? Json.Obj ?: return null
+        return root.fields.entries
+            .sortedByDescending { it.key }
+            .firstNotNullOfOrNull { (it.value["temp"].list.firstOrNull() as? Json.Num)?.value }
+            ?.let { Math.round(it).toInt() }
+    }
+}

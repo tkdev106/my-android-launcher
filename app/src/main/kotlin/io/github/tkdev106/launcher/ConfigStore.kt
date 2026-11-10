@@ -25,10 +25,7 @@ class ConfigStore(private val context: Context) {
         return config
     }
 
-    fun defaults(installed: List<InstalledApp>): LauncherConfig {
-        val nova = context.assets.open("drawer-folders.json").bufferedReader().use { it.readText() }
-        return DefaultConfig.create(ConfigCodec.decodeNovaFolders(nova), installed)
-    }
+    fun defaults(installed: List<InstalledApp>): LauncherConfig = DefaultConfig.create(installed)
 
     fun save(config: LauncherConfig) {
         cached = config

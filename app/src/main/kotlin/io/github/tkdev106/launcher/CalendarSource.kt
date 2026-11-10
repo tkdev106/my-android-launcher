@@ -14,8 +14,10 @@ import java.time.ZoneId
 
 class CalendarSource(private val context: Context) {
 
+    val permitted get() = context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+
     fun lines(now: LocalDateTime, zone: ZoneId): List<AgendaLine> {
-        if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) return emptyList()
+        if (!permitted) return emptyList()
         // 終日の予定は UTC 区切りなので、前後に1日ずつ広く取ってから core で絞る
         val from = now.toLocalDate().minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val to = now.toLocalDate().plusDays(Agenda.DAYS + 1).atStartOfDay(zone).toInstant().toEpochMilli()

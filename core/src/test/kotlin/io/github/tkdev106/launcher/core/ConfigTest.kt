@@ -4,30 +4,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 class ConfigTest {
-    private val novaFolders = ConfigCodec.decodeNovaFolders(File("../docs/drawer-folders.json").readText())
-
     @Test
-    fun `Nova のフォルダの初期値から7つのフォルダを読む`() {
-        assertEquals(
-            listOf("Entertainment", "Finance", "Food", "Games", "Shopping", "Social", "Travel"),
-            novaFolders.map { it.name }.sorted(),
-        )
-        val travel = novaFolders.first { it.name == "Travel" }
-        assertEquals(AppKey("com.dena.automotive.taxibell", "com.dena.automotive.taxibell.SplashActivity"), travel.apps[0])
+    fun `初期値のドロワーにはフォルダが無い`() {
+        assertEquals(emptyList<Folder>(), DefaultConfig.create(emptyList()).drawerFolders)
     }
 
     @Test
-    fun `初期値のフォルダは名前順に並ぶ`() {
-        val config = DefaultConfig.create(novaFolders, emptyList())
-        assertEquals(config.drawerFolders.map { it.name }.sorted(), config.drawerFolders.map { it.name })
+    fun `前の版の設定は読めないとして作り直す`() {
+        val old = ConfigCodec.encode(DefaultConfig.create(emptyList())).replace("\"version\": 3", "\"version\": 2")
+        assertThrows(JsonException::class.java) { ConfigCodec.decode(old) }
     }
 
     @Test
     fun `初期値のホームは LINE・X・Chrome・YouTube`() {
-        val config = DefaultConfig.create(novaFolders, emptyList())
+        val config = DefaultConfig.create(emptyList())
         assertEquals(
             listOf("jp.naver.line.android", "com.twitter.android", "com.android.chrome", "app.revanced.android.youtube"),
             config.homeApps.map { it.app.packageName },
@@ -37,19 +29,19 @@ class ConfigTest {
     @Test
     fun `Muse は名前で探して AI フォルダに入れる`() {
         val muse = InstalledApp(AppKey("com.example.muse", "com.example.muse.Main"), "Muse")
-        val config = DefaultConfig.create(novaFolders, listOf(muse))
+        val config = DefaultConfig.create(listOf(muse))
         assertEquals(listOf("com.anthropic.claude", "com.example.muse"), config.dockRight.apps.map { it.packageName })
     }
 
     @Test
     fun `Muse が入っていなければ AI フォルダは Claude だけ`() {
-        val config = DefaultConfig.create(novaFolders, emptyList())
+        val config = DefaultConfig.create(emptyList())
         assertEquals(listOf("com.anthropic.claude"), config.dockRight.apps.map { it.packageName })
     }
 
     @Test
     fun `保存して読み戻すと同じ設定になる`() {
-        val config = Editing.setIcon(DefaultConfig.create(novaFolders, emptyList()), IconSlot.HomeApp(1), IconRef.file("x-1.png"))
+        val config = Editing.setIcon(DefaultConfig.create(emptyList()), IconSlot.HomeApp(1), IconRef.file("x-1.png"))
         assertEquals(config, ConfigCodec.decode(ConfigCodec.encode(config)))
     }
 

@@ -46,7 +46,7 @@ fun weatherIcon(kind: WeatherKind?): Int = when (kind) {
     else -> R.drawable.ic_weather_cloudy
 }
 
-class WeatherPanel(context: Context) : LinearLayout(context) {
+class WeatherPanel(context: Context, onOpen: () -> Unit) : LinearLayout(context) {
     private val todayIcon = ImageView(context)
     private val todayTemp = Ui.text(context, 50f, Ui.serif(context))
     private val todayLabel = Ui.text(context, 14f, Ui.sans(context))
@@ -70,9 +70,14 @@ class WeatherPanel(context: Context) : LinearLayout(context) {
         addView(today)
         addView(rows, LayoutParams(dp(262), LayoutParams.WRAP_CONTENT).apply { topMargin = dp(10) })
         todayIcon.setColorFilter(Ui.TEXT)
+        isClickable = true
+        contentDescription = "Yahoo!天気"
+        setOnClickListener { onOpen() }
     }
 
-    fun update(days: List<DayForecast>?) {
+    /** 大きく出すのは今の気温。観測がまだ取れていなければ今日の最高気温で代える */
+    fun update(state: WeatherState?) {
+        val days = state?.days
         if (days.isNullOrEmpty()) {
             visibility = GONE
             return
@@ -81,9 +86,10 @@ class WeatherPanel(context: Context) : LinearLayout(context) {
         val t = days[0]
         val kind = JmaForecast.kind(t.weatherCode)
         todayIcon.setImageResource(weatherIcon(kind))
-        todayTemp.text = (t.max ?: t.min)?.let { "$it°" } ?: "--°"
+        todayTemp.text = (state.current ?: t.max ?: t.min)?.let { "$it°" } ?: "--°"
         todayLabel.text = kind?.label ?: "--"
-        todaySub.text = "LOW ${t.min?.let { "$it°" } ?: "--"} · RAIN ${t.pop ?: "--"}%"
+        fun deg(v: Int?) = v?.let { "$it°" } ?: "--"
+        todaySub.text = "H ${deg(t.max)} · L ${deg(t.min)} · RAIN ${t.pop ?: "--"}%"
 
         rows.removeAllViews()
         val rest = days.drop(1)
@@ -129,29 +135,48 @@ class WeatherPanel(context: Context) : LinearLayout(context) {
     }
 }
 
-class AgendaPanel(context: Context, private val onOpen: (AgendaLine) -> Unit) : LinearLayout(context) {
+/**
+ * 予定一覧。許可が無いときと予定が無いときも1行出す（何も出ないと、壊れているのか予定が無いのか見分けられないため）。
+ */
+class AgendaPanel(
+    context: Context,
+    private val onOpen: (AgendaLine) -> Unit,
+    private val onAllow: () -> Unit,
+) : LinearLayout(context) {
     init {
         orientation = VERTICAL
     }
 
-    fun update(lines: List<AgendaLine>) {
+    fun update(lines: List<AgendaLine>, permitted: Boolean) {
         removeAllViews()
-        visibility = if (lines.isEmpty()) GONE else VISIBLE
+        if (!permitted) {
+            addView(note("CALENDAR", "タップしてカレンダーを許可").apply { setOnClickListener { onAllow() } }, LayoutParams(dp(300), dp(28)))
+            return
+        }
+        if (lines.isEmpty()) {
+            addView(note("NEXT 3 DAYS", "No events"), LayoutParams(dp(300), dp(28)))
+            return
+        }
         lines.forEach { line ->
-            addView(LinearLayout(context).apply {
-                orientation = HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+            addView(row(line.whenText, line.title).apply {
                 isClickable = true
                 contentDescription = "${line.whenText} ${line.title}"
                 setOnClickListener { onOpen(line) }
-                addView(Ui.text(context, 10f, Ui.mono(context), Ui.TEXT_DIM).apply { text = line.whenText }, LayoutParams(dp(76), LayoutParams.WRAP_CONTENT))
-                addView(Ui.text(context, 13f, Ui.sans(context)).apply {
-                    text = line.title
-                    isSingleLine = true
-                    ellipsize = TextUtils.TruncateAt.END
-                }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
             }, LayoutParams(dp(300), dp(28)))
         }
+    }
+
+    private fun note(head: String, body: String) = row(head, body, Ui.TEXT_DIM)
+
+    private fun row(head: String, body: String, bodyColor: Int = Ui.TEXT) = LinearLayout(context).apply {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        addView(Ui.text(context, 10f, Ui.mono(context), Ui.TEXT_DIM).apply { text = head }, LayoutParams(dp(76), LayoutParams.WRAP_CONTENT))
+        addView(Ui.text(context, 13f, Ui.sans(context), bodyColor).apply {
+            text = body
+            isSingleLine = true
+            ellipsize = TextUtils.TruncateAt.END
+        }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
     }
 }
 
@@ -160,12 +185,15 @@ data class NowPlayingState(val art: Bitmap?, val title: String?, val artist: Str
 /**
  * 再生中の曲。ジャケットを大きめに、右に曲名・アーティスト名と再生/一時停止ボタン。
  * 何も再生していないときは Apple Music を開くボタンにする（docs/spec.md「内蔵パネル」）。
+ * 通知へのアクセスが無いと曲を読めないので、そのときは許可の画面を開くボタンにする。
  */
 class NowPlayingPanel(
     context: Context,
     private val onOpen: (View) -> Unit,
     private val onToggle: () -> Unit,
+    private val onAllow: () -> Unit,
 ) : LinearLayout(context) {
+    private var hasAccess = true
     private val art = ImageView(context)
     private val title = Ui.text(context, 17f, Ui.sans(context)).apply { maxLines = 3; ellipsize = TextUtils.TruncateAt.END }
     private val artist = Ui.text(context, 13f, Ui.sans(context), Ui.TEXT_DIM).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
@@ -188,7 +216,7 @@ class NowPlayingPanel(
             addView(art, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         }
         placeholder.contentDescription = "Apple Music"
-        placeholder.setOnClickListener { onOpen(it) }
+        placeholder.setOnClickListener { if (hasAccess) onOpen(it) else onAllow() }
         placeholder.set(Launcher.icons(context).glyph(R.drawable.ic_music, dp(56), Ui.CIRCLE))
 
         toggle.apply {
@@ -208,15 +236,23 @@ class NowPlayingPanel(
         addView(artFrame, LayoutParams(dp(196), dp(196)))
         addView(placeholder, LayoutParams(dp(56), dp(56)))
         addView(side, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(16) })
-        update(null)
+        update(null, true)
     }
 
-    fun update(state: NowPlayingState?) {
+    fun update(state: NowPlayingState?, hasAccess: Boolean) {
+        this.hasAccess = hasAccess
         val playing = state != null
         artFrame.visibility = if (playing) VISIBLE else GONE
         placeholder.visibility = if (playing) GONE else VISIBLE
-        (getChildAt(2) as View).visibility = if (playing) VISIBLE else GONE
-        if (state == null) return
+        placeholder.contentDescription = if (hasAccess) "Apple Music" else "通知へのアクセスを許可"
+        // 許可が無いときは、ボタンの横に何のためのボタンかを書く
+        (getChildAt(2) as View).visibility = if (playing || !hasAccess) VISIBLE else GONE
+        toggle.visibility = if (playing) VISIBLE else GONE
+        if (state == null) {
+            title.text = if (hasAccess) "" else "Now Playing"
+            artist.text = if (hasAccess) "" else "タップして通知へのアクセスを許可"
+            return
+        }
         art.setImageBitmap(state.art)
         art.setBackgroundColor(if (state.art == null) Ui.CIRCLE else 0)
         title.text = state.title ?: ""

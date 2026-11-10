@@ -2,7 +2,8 @@ package io.github.tkdev106.launcher.core
 
 /** 設定を1つの JSON ファイルとして読み書きする。項目の意味は docs/spec.md の各節 */
 object ConfigCodec {
-    private const val VERSION = 2
+    // 版2 までは Nova のフォルダを初期値に入れていた。版を上げて、その設定を初期値から作り直させる
+    private const val VERSION = 3
 
     fun encode(config: LauncherConfig): String = Json.obj(
         "version" to Json.num(VERSION),
@@ -26,14 +27,6 @@ object ConfigCodec {
             drawerButtonIcon = root["drawerButtonIcon"].string,
             drawerFolders = root["drawerFolders"].list.map(::decodeFolder),
         )
-    }
-
-    /** docs/drawer-folders.json（`{"フォルダ名": [{"title", "component"}]}`）を読む */
-    fun decodeNovaFolders(text: String): List<Folder> {
-        val root = Json.parse(text) as? Json.Obj ?: throw JsonException("フォルダの一覧がオブジェクトでない")
-        return root.fields.map { (name, apps) ->
-            Folder(name, apps.list.mapNotNull { it["component"].string?.let(AppKey::parse) })
-        }
     }
 
     private fun encodeFolder(f: Folder) = Json.obj(

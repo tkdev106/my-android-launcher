@@ -1,5 +1,3 @@
-import com.android.build.api.variant.AndroidComponentsExtension
-
 plugins {
     alias(libs.plugins.android.application)
 }
@@ -34,30 +32,6 @@ android {
         abortOnError = true
         warningsAsErrors = false
     }
-}
-
-/** ドロワーのフォルダの初期値は docs/ に1か所だけ置き、ビルドのたびに APK の assets へ写す */
-abstract class CopyDrawerFolders : DefaultTask() {
-    @get:InputFile
-    abstract val source: RegularFileProperty
-
-    @get:OutputDirectory
-    abstract val outputDir: DirectoryProperty
-
-    @TaskAction
-    fun copy() {
-        val out = outputDir.get().asFile
-        out.mkdirs()
-        source.get().asFile.copyTo(out.resolve("drawer-folders.json"), overwrite = true)
-    }
-}
-
-val copyDrawerFolders = tasks.register<CopyDrawerFolders>("copyDrawerFolders") {
-    source.set(rootProject.layout.projectDirectory.file("docs/drawer-folders.json"))
-}
-
-extensions.getByType(AndroidComponentsExtension::class.java).onVariants { variant ->
-    variant.sources.assets?.addGeneratedSourceDirectory(copyDrawerFolders, CopyDrawerFolders::outputDir)
 }
 
 dependencies {

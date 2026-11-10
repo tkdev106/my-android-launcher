@@ -3,12 +3,15 @@ package io.github.tkdev106.launcher
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import io.github.tkdev106.launcher.core.Amedas
 import io.github.tkdev106.launcher.core.DayForecast
 import io.github.tkdev106.launcher.core.JmaArea
 import io.github.tkdev106.launcher.core.JmaAreas
@@ -25,43 +28,75 @@ import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
+/** 予報3日分と今の気温。今の気温が取れていなければ null */
+data class WeatherState(val days: List<DayForecast>, val current: Int?)
+
 /**
- * 気象庁の予報を取ってきて覚えておく（docs/spec.md「内蔵パネル」）。
- * ホームを開いたときに refresh を呼び、前に取ってから1時間以上たっていれば裏の線で取り直す。常駐も定期取得もしない。
+ * 気象庁の予報とアメダスの今の気温を取ってきて覚えておく（docs/spec.md「内蔵パネル」）。
+ * ホームを開いたときに refresh を呼び、予報は1時間、今の気温は10分たっていれば裏の線で取り直す。常駐も定期取得もしない。
  */
 class WeatherSource(private val context: Context) {
     private val cacheFile = File(context.filesDir, "weather.json")
+    private val observedFile = File(context.filesDir, "observed.txt")
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var running = false
 
-    fun cached(today: LocalDate): List<DayForecast>? = runCatching {
+    private fun cachedArea(j: Json) = JmaArea(j["office"].string!!, j["area"].string!!, j["station"].string!!)
+
+    fun cached(today: LocalDate): WeatherState? = runCatching {
         val j = Json.parse(cacheFile.readText())
-        val area = JmaArea(j["office"].string!!, j["area"].string!!, j["station"].string!!)
-        JmaForecast.parse(j["forecast"].string!!, area, today)
+        WeatherState(JmaForecast.parse(j["forecast"].string!!, cachedArea(j), today), observed())
     }.getOrNull()
 
-    fun refresh(today: LocalDate, onUpdated: (List<DayForecast>) -> Unit) {
-        val age = System.currentTimeMillis() - cacheFile.lastModified()
-        if (cacheFile.exists() && age < REFRESH_MILLIS || running) return
+    /** 今の気温は古すぎると誤解を招くので、1時間より前の観測は出さない */
+    private fun observed(): Int? {
+        if (!observedFile.exists() || System.currentTimeMillis() - observedFile.lastModified() > FORECAST_MILLIS) return null
+        return runCatching { observedFile.readText().trim().toInt() }.getOrNull()
+    }
+
+    fun refresh(today: LocalDate, onUpdated: (WeatherState) -> Unit) {
+        val now = System.currentTimeMillis()
+        val forecastStale = !cacheFile.exists() || now - cacheFile.lastModified() >= FORECAST_MILLIS
+        val observedStale = !observedFile.exists() || now - observedFile.lastModified() >= OBSERVED_MILLIS
+        if (!forecastStale && !observedStale || running) return
         running = true
         Launcher.background.execute {
             try {
-                val area = currentArea()
-                val text = fetch("https://www.jma.go.jp/bosai/forecast/data/forecast/${area.office}.json")
-                val days = JmaForecast.parse(text, area, today)
-                val tmp = File(context.filesDir, "weather.json.tmp")
-                tmp.writeText(Json.obj(
-                    "office" to Json.Str(area.office), "area" to Json.Str(area.area),
-                    "station" to Json.Str(area.station), "forecast" to Json.Str(text),
-                ).stringify())
-                tmp.renameTo(cacheFile)
-                main.post { onUpdated(days) }
+                if (forecastStale) {
+                    val area = currentArea()
+                    val text = fetch("https://www.jma.go.jp/bosai/forecast/data/forecast/${area.office}.json")
+                    JmaForecast.parse(text, area, today)
+                    writeAtomically(cacheFile, Json.obj(
+                        "office" to Json.Str(area.office), "area" to Json.Str(area.area),
+                        "station" to Json.Str(area.station), "forecast" to Json.Str(text),
+                    ).stringify())
+                }
+                // 今の気温が取れなくても予報は出す。失敗しても空で書いておき、ホームを開くたびに通信しないよう10分待つ
+                val temp = runCatching {
+                    val station = cachedArea(Json.parse(cacheFile.readText())).station
+                    Amedas.latestTemp(fetch(Amedas.pointUrl(station, fetch(Amedas.LATEST_TIME_URL))))
+                }.getOrNull()
+                writeAtomically(observedFile, temp?.toString() ?: "")
+                cached(today)?.let { main.post { onUpdated(it) } }
             } catch (_: Exception) {
                 // 通信できないときは前の予報を出したままにし、次にホームを開いたときにまた試す
             } finally {
                 running = false
             }
         }
+    }
+
+    private fun writeAtomically(file: File, text: String) {
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        tmp.writeText(text)
+        tmp.renameTo(file)
+    }
+
+    /** Yahoo!天気のアプリがあればそれを、無ければ Web の Yahoo!天気を開く */
+    fun openYahoo() {
+        val intent = context.packageManager.getLaunchIntentForPackage(YAHOO_WEATHER)
+            ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://weather.yahoo.co.jp/weather/"))
+        runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
     /** 端末が最後に取った大まかな位置から市区町村を引き、予報区域に当てる。取れなければ東京地方 */
@@ -109,6 +144,8 @@ class WeatherSource(private val context: Context) {
     }
 
     companion object {
-        private const val REFRESH_MILLIS = 60 * 60 * 1000L
+        private const val FORECAST_MILLIS = 60 * 60 * 1000L
+        private const val OBSERVED_MILLIS = 10 * 60 * 1000L
+        const val YAHOO_WEATHER = "jp.co.yahoo.android.weather.type1"
     }
 }

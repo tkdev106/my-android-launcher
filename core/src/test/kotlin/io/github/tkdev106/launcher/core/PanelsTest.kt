@@ -109,3 +109,41 @@ class WeatherTest {
         )
     }
 }
+
+class AmedasTest {
+    @Test
+    fun `気温がある最新の観測を四捨五入して今の気温にする`() {
+        val text = """
+            {
+              "20261111070000": {"temp": [12.4, 0], "humidity": [80, 0]},
+              "20261111074000": {"temp": [13.6, 0]},
+              "20261111075000": {"temp": [null, 5], "humidity": [70, 0]},
+              "20261111073000": {"temp": [13.0, 0]}
+            }
+        """.trimIndent()
+        assertEquals(14, Amedas.latestTemp(text))
+    }
+
+    @Test
+    fun `氷点下も四捨五入する`() {
+        assertEquals(-3, Amedas.latestTemp("""{"20260201060000": {"temp": [-2.6, 0]}}"""))
+    }
+
+    @Test
+    fun `気温の観測が1つも無ければ分からないとする`() {
+        assertEquals(null, Amedas.latestTemp("""{"20261111070000": {"precipitation10m": [0.0, 0]}}"""))
+        assertEquals(null, Amedas.latestTemp("{}"))
+    }
+
+    @Test
+    fun `観測は最新の時刻を含む3時間ごとのファイルから取る`() {
+        assertEquals(
+            "https://www.jma.go.jp/bosai/amedas/data/point/44132/20261111_06.json",
+            Amedas.pointUrl("44132", "2026-11-11T07:50:00+09:00\n"),
+        )
+        assertEquals(
+            "https://www.jma.go.jp/bosai/amedas/data/point/44132/20261111_00.json",
+            Amedas.pointUrl("44132", "2026-11-11T00:00:00+09:00"),
+        )
+    }
+}
