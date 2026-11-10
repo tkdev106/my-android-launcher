@@ -70,7 +70,7 @@ jobs:
           echo no | avdmanager create avd -n smoke -k "$IMG" -d pixel_7 -p "$ANDROID_AVD_HOME/smoke.avd"
           ls -la "$ANDROID_AVD_HOME"
           emulator -list-avds
-          emulator -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -accel on > smoke/emulator.log 2>&1 &
+          emulator -avd smoke -partition-size 6144 -wipe-data -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -accel on > smoke/emulator.log 2>&1 &
           emulator -accel-check || true
           timeout 300 adb wait-for-device || { cat smoke/emulator.log; exit 1; }
           timeout 600 sh -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 5; done' || { tail -50 smoke/emulator.log; exit 1; }
