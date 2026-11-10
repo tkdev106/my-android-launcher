@@ -117,7 +117,7 @@ class HomeActivity : Activity() {
             addAction(Intent.ACTION_TIME_TICK)
             addAction(Intent.ACTION_TIME_CHANGED)
             addAction(Intent.ACTION_TIMEZONE_CHANGED)
-        })
+        }, RECEIVER_NOT_EXPORTED)
         val today = LocalDateTime.now().toLocalDate()
         weather.update(weatherSource.cached(today))
         weatherSource.refresh(today) { weather.update(it) }

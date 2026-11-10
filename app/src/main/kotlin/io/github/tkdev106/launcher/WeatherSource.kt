@@ -1,6 +1,7 @@
 package io.github.tkdev106.launcher
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
@@ -85,6 +86,8 @@ class WeatherSource(private val context: Context) {
         return JmaAreas.find(table, names, admin)
     }
 
+    // 許可は先頭で確かめている。lint は runCatching の中まで追えないので止める
+    @SuppressLint("MissingPermission")
     private fun lastLocation(): Location? {
         if (context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) return null
         val lm = context.getSystemService(LocationManager::class.java)
