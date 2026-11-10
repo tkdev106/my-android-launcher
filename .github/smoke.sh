@@ -6,6 +6,15 @@ PKG=io.github.tkdev106.launcher
 OUT=smoke
 mkdir -p "$OUT"
 
+# 成果物はこの環境から取り出せないことがあるので、落ちたときの手がかりをジョブのログにも出す
+report() {
+  adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
+  ls -la "$OUT"
+  grep -nE "FATAL EXCEPTION|ANR in|has died|system_server|Watchdog|$PKG" "$OUT/logcat.txt" | tail -80 || true
+  grep -A 30 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -120 || true
+}
+trap report EXIT
+
 adb install -r -g app/build/outputs/apk/debug/app-debug.apk
 adb shell cmd package set-home-activity "$PKG/.HomeActivity"
 adb logcat -c
@@ -44,6 +53,7 @@ adb exec-out screencap -p > "$OUT/edit.png"
 adb shell input keyevent KEYCODE_HOME
 
 adb logcat -d > "$OUT/logcat.txt"
+trap - EXIT
 if grep -E "FATAL EXCEPTION|ANR in $PKG" "$OUT/logcat.txt"; then
   grep -A 30 "FATAL EXCEPTION" "$OUT/logcat.txt" || true
   echo "落ちた"
