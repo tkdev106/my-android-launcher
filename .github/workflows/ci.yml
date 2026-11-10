@@ -66,8 +66,9 @@ jobs:
           timeout 600 sdkmanager --install emulator platform-tools "$IMG" > /dev/null
           echo no | avdmanager create avd -n smoke -k "$IMG" -d pixel_7
           emulator -avd smoke -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -accel on > smoke/emulator.log 2>&1 &
-          timeout 300 adb wait-for-device
-          timeout 600 sh -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 5; done'
+          emulator -accel-check || true
+          timeout 300 adb wait-for-device || { cat smoke/emulator.log; exit 1; }
+          timeout 600 sh -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 5; done' || { tail -50 smoke/emulator.log; exit 1; }
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
