@@ -24,6 +24,7 @@ import io.github.tkdev106.launcher.core.IconRef
 /**
  * アイコンを丸に揃えて描く（docs/spec.md「見た目」）。
  * - 自作の絵柄（builtin）と各アプリの単色版アイコンは、暗い半透明の丸に白で描く
+ * - 決済・AI のフォルダに入れるアプリは、元のロゴの特徴を残した自作の絵柄に置き換える
  * - 単色版が無いアプリは、元のアイコンから地の色と違う部分（ロゴ）だけを抜き出して白で描く
  * - どちらも絵柄の外枠を測り、丸からはみ出すものは縮めて真ん中に置く
  * - 編集モードで選んだ画像は、丸に切り抜く
@@ -44,6 +45,8 @@ class IconFactory(private val context: Context) {
 
     fun app(key: AppKey, sizePx: Int, border: Boolean = true, fill: Int = Ui.CIRCLE): Bitmap =
         remember("app:${key.flatten()}:$sizePx:$border:$fill") {
+            val own = ownGlyph(key)
+            if (own != null) return@remember glyph(own, sizePx, fill, border)
             val bmp = base(sizePx, border, fill)
             val info = Launcher.catalog(context).info(key)
             val icon = info?.getIcon(context.resources.displayMetrics.densityDpi)
@@ -63,8 +66,16 @@ class IconFactory(private val context: Context) {
                 val y = start + (i / 2) * (cell + gap)
                 canvas.save()
                 canvas.translate(x, y)
-                val icon = Launcher.catalog(context).info(key)?.getIcon(context.resources.displayMetrics.densityDpi)
-                if (icon != null) drawAppGlyph(canvas, icon, cell.toInt(), circleClip = true)
+                val own = ownGlyph(key)
+                if (own != null) {
+                    val d = context.getDrawable(own)!!.mutate()
+                    d.setBounds(0, 0, cell.toInt(), cell.toInt())
+                    d.setTint(Ui.TEXT)
+                    d.draw(canvas)
+                } else {
+                    val icon = Launcher.catalog(context).info(key)?.getIcon(context.resources.displayMetrics.densityDpi)
+                    if (icon != null) drawAppGlyph(canvas, icon, cell.toInt(), circleClip = true)
+                }
                 canvas.restore()
             }
             bmp
@@ -217,6 +228,20 @@ class IconFactory(private val context: Context) {
             }
         }
         return if (r < 0) null else Rect(l, t, r + 1, b + 1)
+    }
+
+    /** Muse はパッケージ名が分からないので、名前で当てる（docs/spec.md「ドック」） */
+    private fun ownGlyph(key: AppKey): Int? = APP_GLYPHS[key.packageName]
+        ?: R.drawable.ic_app_muse.takeIf { Launcher.catalog(context).label(key).trim().equals("Muse", ignoreCase = true) }
+
+    companion object {
+        /** 自作の絵柄に置き換えるアプリ（ドックの決済・AI のフォルダの中身）。ホームの4つは設定の IconRef で持つ */
+        private val APP_GLYPHS = mapOf(
+            "jp.ne.paypay.android.app" to R.drawable.ic_app_paypay,
+            "jp.co.rakuten.pay" to R.drawable.ic_app_rakuten_pay,
+            "com.google.android.apps.walletnfcrel" to R.drawable.ic_app_wallet,
+            "com.anthropic.claude" to R.drawable.ic_app_claude,
+        )
     }
 
     private inline fun remember(key: String, make: () -> Bitmap): Bitmap = cache.get(key) ?: make().also { cache.put(key, it) }

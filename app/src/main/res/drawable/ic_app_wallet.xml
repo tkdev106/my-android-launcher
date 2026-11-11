@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Google ウォレット: 本体と、上に重なって斜めに差し込まれたカードの帯（元のロゴの色の帯） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M4 13.5A2.5 2.5 0 0 1 6.5 11h11a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5zM5 10.5l12.3-3.3a1.5 1.5 0 0 1 1.85 1.05L19.4 9.5M6 7.7l9.6-2.6a1.5 1.5 0 0 1 1.85 1.05" android:strokeColor="#FFF1F0EC" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+</vector>
