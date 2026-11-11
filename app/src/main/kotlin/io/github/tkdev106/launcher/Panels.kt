@@ -217,8 +217,8 @@ class NowPlayingPanel(
 ) : LinearLayout(context) {
     private var hasAccess = true
     private val art = ImageView(context)
-    private val title = Ui.text(context, 17f, Ui.sans(context)).apply { maxLines = 3; ellipsize = TextUtils.TruncateAt.END }
-    private val artist = Ui.text(context, 13f, Ui.sans(context), Ui.TEXT_DIM).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
+    private val title = Ui.text(context, 21f, Ui.serif(context)).apply { maxLines = 3; ellipsize = TextUtils.TruncateAt.END }
+    private val artist = Ui.text(context, 16f, Ui.serif(context), Ui.TEXT_DIM).apply { maxLines = 2; ellipsize = TextUtils.TruncateAt.END }
     private val toggle = ImageView(context)
     private val placeholder = IconView(context)
     private val artFrame = FrameLayout(context)
