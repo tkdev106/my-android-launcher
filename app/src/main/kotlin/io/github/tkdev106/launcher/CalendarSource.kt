@@ -31,11 +31,12 @@ class CalendarSource(private val context: Context) {
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.END,
             CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.CALENDAR_COLOR,
         )
         val events = runCatching {
             context.contentResolver.query(uri, projection, "${CalendarContract.Instances.VISIBLE} = 1", null, null)?.use { c ->
                 buildList {
-                    while (c.moveToNext()) add(CalendarEvent(c.getLong(0), c.getString(1), c.getLong(2), c.getLong(3), c.getInt(4) == 1))
+                    while (c.moveToNext()) add(CalendarEvent(c.getLong(0), c.getString(1), c.getLong(2), c.getLong(3), c.getInt(4) == 1, if (c.isNull(5)) null else c.getInt(5)))
                 }
             }
         }.getOrNull() ?: emptyList()
@@ -50,6 +51,13 @@ class CalendarSource(private val context: Context) {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         val google = Intent(intent).setPackage(GOOGLE_CALENDAR)
         runCatching { context.startActivity(google) }.recoverCatching { context.startActivity(intent) }
+    }
+
+    /** 予定の行以外を押したときは、カレンダーのアプリを開くだけにする */
+    fun openApp() {
+        val intent = context.packageManager.getLaunchIntentForPackage(GOOGLE_CALENDAR)
+            ?: Intent(Intent.ACTION_VIEW, CalendarContract.CONTENT_URI.buildUpon().appendPath("time").build())
+        runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     }
 
     companion object {

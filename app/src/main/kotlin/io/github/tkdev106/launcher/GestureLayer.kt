@@ -27,6 +27,8 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
     private var maxPointers = 0
     private var downTime = 0L
     private var downOnEmpty = false
+    // 予定一覧のように中が縦にスクロールする所で始まった操作は、ジェスチャーにせずその中のスクロールに任せる
+    private var downOnScroll = false
 
     var active = true
 
@@ -36,7 +38,7 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-        if (!active) return false
+        if (!active || downOnScroll && ev.pointerCount == 1) return false
         return when (ev.actionMasked) {
             MotionEvent.ACTION_POINTER_DOWN -> true
             MotionEvent.ACTION_MOVE -> {
@@ -58,6 +60,7 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
                 maxPointers = 1
                 downTime = ev.eventTime
                 downOnEmpty = !hitsInteractive(this, ev.x, ev.y)
+                downOnScroll = hitsScrollable(this, ev.x, ev.y)
                 put(ev, 0, starts); put(ev, 0, ends)
             }
             MotionEvent.ACTION_POINTER_DOWN -> {
@@ -78,6 +81,7 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
     }
 
     private fun finish(ev: MotionEvent) {
+        if (downOnScroll && maxPointers == 1) return
         val tracks = starts.keys.mapNotNull { id -> ends[id]?.let { PointerTrack(starts.getValue(id), it) } }
         val gesture = classifier.classify(tracks)
         if (gesture != null) {
@@ -98,6 +102,19 @@ class GestureLayer(context: Context, private val onGesture: (Gesture) -> Unit) :
 
     private fun put(ev: MotionEvent, index: Int, into: HashMap<Int, Point>) {
         into[ev.getPointerId(index)] = Point(ev.getX(index), ev.getY(index))
+    }
+
+    private fun hitsScrollable(group: ViewGroup, x: Float, y: Float): Boolean {
+        for (i in group.childCount - 1 downTo 0) {
+            val c = group.getChildAt(i)
+            if (c.visibility != View.VISIBLE) continue
+            val lx = x - c.left + group.scrollX
+            val ly = y - c.top + group.scrollY
+            if (lx < 0 || ly < 0 || lx >= c.width || ly >= c.height) continue
+            if (c.canScrollVertically(1) || c.canScrollVertically(-1)) return true
+            if (c is ViewGroup && hitsScrollable(c, lx, ly)) return true
+        }
+        return false
     }
 
     private fun hitsInteractive(group: ViewGroup, x: Float, y: Float): Boolean {

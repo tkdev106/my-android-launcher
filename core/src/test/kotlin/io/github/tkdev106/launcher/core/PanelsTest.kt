@@ -41,16 +41,35 @@ class AgendaTest {
         assertEquals("TODAY 15:00", Agenda.lines(listOf(timed(1, "a", 10, 15)), now, tokyo)[0].whenText)
     }
 
+    private fun timedOn(id: Long, title: String, date: LocalDate, h: Int) = CalendarEvent(
+        id, title, date.atTime(h, 0).atZone(tokyo).toInstant().toEpochMilli(), date.atTime(h + 1, 0).atZone(tokyo).toInstant().toEpochMilli(), false,
+    )
+
     @Test
-    fun `終わった予定と3日より先の予定は出さない`() {
-        val lines = Agenda.lines(listOf(timed(1, "済んだ", 10, 9), timed(2, "先", 13, 10), timed(3, "残る", 12, 22)), now, tokyo)
+    fun `終わった予定と1か月より先の予定は出さない`() {
+        val lines = Agenda.lines(
+            listOf(timed(1, "済んだ", 10, 9), timedOn(2, "先", LocalDate.of(2026, 12, 11), 10), timedOn(3, "残る", LocalDate.of(2026, 12, 10), 22)),
+            now, tokyo,
+        )
         assertEquals(listOf("残る"), lines.map { it.title })
     }
 
     @Test
-    fun `3件までに絞る`() {
+    fun `件数は絞らずに全部並べる`() {
         val lines = Agenda.lines((1..5).map { timed(it.toLong(), "e$it", 11, it + 8) }, now, tokyo)
-        assertEquals(listOf("e1", "e2", "e3"), lines.map { it.title })
+        assertEquals(listOf("e1", "e2", "e3", "e4", "e5"), lines.map { it.title })
+    }
+
+    @Test
+    fun `1週間より先の予定は曜日でなく日付で書く`() {
+        val lines = Agenda.lines(listOf(timed(1, "週内", 16, 9), timedOn(2, "来週", LocalDate.of(2026, 11, 17), 9)), now, tokyo)
+        assertEquals(listOf("MON 09:00", "17 NOV 09:00"), lines.map { it.whenText })
+    }
+
+    @Test
+    fun `予定の行にはカレンダーの色を付ける`() {
+        val family = CalendarEvent(1, "家族", at(11, 10), at(11, 11), false, calendarColor = 0xFF4285F4.toInt())
+        assertEquals(0xFF4285F4.toInt(), Agenda.lines(listOf(family), now, tokyo)[0].color)
     }
 
     @Test

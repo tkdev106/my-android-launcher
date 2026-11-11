@@ -12,6 +12,7 @@ import android.view.ViewOutlineProvider
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import io.github.tkdev106.launcher.Ui.dp
 import io.github.tkdev106.launcher.core.AgendaLine
 import io.github.tkdev106.launcher.core.ClockText
@@ -136,47 +137,68 @@ class WeatherPanel(context: Context, onOpen: () -> Unit) : LinearLayout(context)
 }
 
 /**
- * 予定一覧。許可が無いときと予定が無いときも1行出す（何も出ないと、壊れているのか予定が無いのか見分けられないため）。
+ * 予定一覧。3行の高さに収め、1か月先までは中をスクロールして見る。
+ * 行を押すとその予定を、行以外を押すとカレンダーのアプリを開く。
+ * 許可が無いときと予定が無いときも1行出す（何も出ないと、壊れているのか予定が無いのか見分けられないため）。
  */
 class AgendaPanel(
     context: Context,
     private val onOpen: (AgendaLine) -> Unit,
+    private val onOpenApp: () -> Unit,
     private val onAllow: () -> Unit,
 ) : LinearLayout(context) {
+    private val rowHeight = dp(28)
+    private val list = LinearLayout(context).apply { orientation = VERTICAL }
+    private val scroll = ScrollView(context).apply {
+        isVerticalScrollBarEnabled = false
+        overScrollMode = OVER_SCROLL_NEVER
+        // 3行より下は端を薄くして、まだ続くことを見せる
+        isVerticalFadingEdgeEnabled = true
+        setFadingEdgeLength(dp(16))
+        addView(list, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+    }
+
     init {
         orientation = VERTICAL
+        // パネルは ScrollView に覆われて押しても届かないので、行の並び（行以外の余白を含む）で受ける
+        list.setOnClickListener { onOpenApp() }
+        addView(scroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }
 
     fun update(lines: List<AgendaLine>, permitted: Boolean) {
-        removeAllViews()
-        if (!permitted) {
-            addView(note("CALENDAR", "タップしてカレンダーを許可").apply { setOnClickListener { onAllow() } }, LayoutParams(dp(300), dp(28)))
-            return
+        list.removeAllViews()
+        when {
+            !permitted -> list.addView(row(null, "CALENDAR", "タップしてカレンダーを許可", Ui.TEXT_DIM).apply { setOnClickListener { onAllow() } }, rowParams())
+            lines.isEmpty() -> list.addView(row(null, "NEXT MONTH", "No events", Ui.TEXT_DIM), rowParams())
+            else -> lines.forEach { line ->
+                list.addView(row(line.color, line.whenText, line.title).apply {
+                    contentDescription = "${line.whenText} ${line.title}"
+                    setOnClickListener { onOpen(line) }
+                }, rowParams())
+            }
         }
-        if (lines.isEmpty()) {
-            addView(note("NEXT 3 DAYS", "No events"), LayoutParams(dp(300), dp(28)))
-            return
-        }
-        lines.forEach { line ->
-            addView(row(line.whenText, line.title).apply {
-                isClickable = true
-                contentDescription = "${line.whenText} ${line.title}"
-                setOnClickListener { onOpen(line) }
-            }, LayoutParams(dp(300), dp(28)))
-        }
+        scroll.layoutParams = scroll.layoutParams.apply { height = rowHeight * minOf(VISIBLE_ROWS, list.childCount.coerceAtLeast(1)) }
+        scroll.scrollTo(0, 0)
     }
 
-    private fun note(head: String, body: String) = row(head, body, Ui.TEXT_DIM)
+    private fun rowParams() = LayoutParams(dp(300), rowHeight)
 
-    private fun row(head: String, body: String, bodyColor: Int = Ui.TEXT) = LinearLayout(context).apply {
+    private fun row(color: Int?, head: String, body: String, bodyColor: Int = Ui.TEXT) = LinearLayout(context).apply {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        addView(Ui.text(context, 10f, Ui.mono(context), Ui.TEXT_DIM).apply { text = head }, LayoutParams(dp(76), LayoutParams.WRAP_CONTENT))
+        addView(View(context).apply {
+            background = if (color != null) Ui.pill(context, color or 0xFF000000.toInt(), 4f) else null
+        }, LayoutParams(dp(8), dp(8)).apply { marginEnd = dp(10) })
+        addView(Ui.text(context, 10f, Ui.mono(context), Ui.TEXT_DIM).apply { text = head }, LayoutParams(dp(84), LayoutParams.WRAP_CONTENT))
         addView(Ui.text(context, 13f, Ui.sans(context), bodyColor).apply {
             text = body
             isSingleLine = true
             ellipsize = TextUtils.TruncateAt.END
-        }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(12) })
+        }, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(10) })
+    }
+
+    companion object {
+        private const val VISIBLE_ROWS = 3
     }
 }
 

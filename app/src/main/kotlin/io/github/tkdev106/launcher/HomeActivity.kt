@@ -68,7 +68,7 @@ class HomeActivity : Activity() {
 
         clock = ClockPanel(this)
         weather = WeatherPanel(this) { weatherSource.openYahoo() }
-        agenda = AgendaPanel(this, onOpen = { calendar.open(it) }, onAllow = { requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR), CALENDAR_REQUEST) })
+        agenda = AgendaPanel(this, onOpen = { calendar.open(it) }, onOpenApp = { calendar.openApp() }, onAllow = { requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR), CALENDAR_REQUEST) })
         nowPlaying = NowPlayingPanel(this, onOpen = { nowPlayingSource.open(it, catalog) }, onToggle = { nowPlayingSource.toggle() },
             onAllow = { nowPlayingSource.openAccessSettings() })
         nowPlayingSource = NowPlayingSource(this) { state, access -> nowPlaying.update(state, access) }

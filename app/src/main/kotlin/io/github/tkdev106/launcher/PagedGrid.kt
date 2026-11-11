@@ -14,6 +14,7 @@ import kotlin.math.roundToInt
  * 6列×7行のマスを、横にページをめくって見せる（docs/spec.md「アプリ一覧」）。
  * ViewPager を使うと AndroidX が要るので、横のスクロールとページ合わせだけを自前で持つ。
  * 子は追加した順に、ページ → 行 → 列 の順でマスに入る。
+ * 最後のページの先へめくると最初のページに、最初のページの手前へめくると最後のページに戻る。
  */
 class PagedGrid(context: Context, private val columns: Int, private val rows: Int) : ViewGroup(context) {
     private val scroller = OverScroller(context)
@@ -74,6 +75,19 @@ class PagedGrid(context: Context, private val columns: Int, private val rows: In
         }
     }
 
+    /** 反対の端へは全ページを流さず、隣のページから入ってくるように見せる */
+    private fun wrapTo(p: Int) {
+        val w = width
+        // 端の外へ引いた分だけ隣から入ってくる形にする。引いていない（速く払っただけの）ときは隣のページの位置から
+        val from = if (p == 0) -w + (scrollX - (pageCount - 1) * w).coerceIn(0, w) else pageCount * w - (-scrollX).coerceIn(0, w)
+        page = p
+        onPageChanged(page)
+        scroller.forceFinished(true)
+        scrollTo(from, 0)
+        scroller.startScroll(from, 0, p * w - from, 0, 260)
+        postInvalidateOnAnimation()
+    }
+
     override fun computeScroll() {
         if (scroller.computeScrollOffset()) {
             scrollTo(scroller.currX, 0)
@@ -117,8 +131,10 @@ class PagedGrid(context: Context, private val columns: Int, private val rows: In
                 val dy = ev.y - downY
                 if (!dragging && dy > abs(ev.x - downX) * 2) return true
                 dragging = true
+                // 端の先にも少しだけ引っ張れるようにして、ぐるりと回る操作を受ける
+                val over = if (pageCount > 1) width / 3 else 0
                 val max = (pageCount - 1) * width
-                scrollTo((scrollX + (lastX - ev.x)).roundToInt().coerceIn(0, max), 0)
+                scrollTo((scrollX + (lastX - ev.x)).roundToInt().coerceIn(-over, max + over), 0)
                 lastX = ev.x
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -129,12 +145,21 @@ class PagedGrid(context: Context, private val columns: Int, private val rows: In
                 if (!dragging && dy > slop * 3 && ev.actionMasked == MotionEvent.ACTION_UP) {
                     onSwipeDown()
                 } else {
+                    val w = width.coerceAtLeast(1)
+                    val last = pageCount - 1
                     val target = when {
                         vx < -minFling * 4 -> page + 1
                         vx > minFling * 4 -> page - 1
-                        else -> ((scrollX + width / 2) / width.coerceAtLeast(1))
+                        scrollX < -w / 6 -> -1
+                        scrollX > last * w + w / 6 -> last + 1
+                        else -> Math.floorDiv(scrollX + w / 2, w)
                     }
-                    showPage(target, animate = true)
+                    when {
+                        last == 0 -> showPage(0, animate = true)
+                        target > last -> wrapTo(0)
+                        target < 0 -> wrapTo(last)
+                        else -> showPage(target, animate = true)
+                    }
                 }
                 dragging = false
                 velocity?.recycle()
