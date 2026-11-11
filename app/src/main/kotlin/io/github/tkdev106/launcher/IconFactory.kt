@@ -11,6 +11,8 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
+import android.graphics.Rect
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
@@ -22,8 +24,8 @@ import io.github.tkdev106.launcher.core.IconRef
 /**
  * アイコンを丸に揃えて描く（docs/spec.md「見た目」）。
  * - 自作の絵柄（builtin）と各アプリの単色版アイコンは、暗い半透明の丸に白で描く
- * - 決済・AI のフォルダに入れるアプリは、パッケージ名で自作の絵柄に置き換える
  * - 単色版が無いアプリは、元のアイコンから地の色と違う部分（ロゴ）だけを抜き出して白で描く
+ * - どちらも絵柄の外枠を測り、丸からはみ出すものは縮めて真ん中に置く
  * - 編集モードで選んだ画像は、丸に切り抜く
  * 描いた結果は大きさごとに覚えておき、ドロワーを開くたびに描き直さない。
  */
@@ -42,8 +44,6 @@ class IconFactory(private val context: Context) {
 
     fun app(key: AppKey, sizePx: Int, border: Boolean = true, fill: Int = Ui.CIRCLE): Bitmap =
         remember("app:${key.flatten()}:$sizePx:$border:$fill") {
-            val own = ownGlyph(key)
-            if (own != null) return@remember glyph(own, sizePx, fill, border)
             val bmp = base(sizePx, border, fill)
             val info = Launcher.catalog(context).info(key)
             val icon = info?.getIcon(context.resources.displayMetrics.densityDpi)
@@ -63,16 +63,8 @@ class IconFactory(private val context: Context) {
                 val y = start + (i / 2) * (cell + gap)
                 canvas.save()
                 canvas.translate(x, y)
-                val own = ownGlyph(key)
-                if (own != null) {
-                    val d = context.getDrawable(own)!!.mutate()
-                    d.setBounds(0, 0, cell.toInt(), cell.toInt())
-                    d.setTint(Ui.TEXT)
-                    d.draw(canvas)
-                } else {
-                    val icon = Launcher.catalog(context).info(key)?.getIcon(context.resources.displayMetrics.densityDpi)
-                    if (icon != null) drawAppGlyph(canvas, icon, cell.toInt(), circleClip = true)
-                }
+                val icon = Launcher.catalog(context).info(key)?.getIcon(context.resources.displayMetrics.densityDpi)
+                if (icon != null) drawAppGlyph(canvas, icon, cell.toInt(), circleClip = true)
                 canvas.restore()
             }
             bmp
@@ -144,47 +136,57 @@ class IconFactory(private val context: Context) {
     }
 
     /**
-     * 単色版（themed icon）があれば白で描く。適応アイコンの層は見える範囲の 1.5 倍の大きさで作られているので、丸に合わせて外側を広げて描く。
-     * 単色版が無ければ、元のアイコンを描いてから地の明るさと違う所だけを白く残す。
-     * 白黒にしただけだと白い丸や灰色の板になり、ほかの白い絵柄のアイコンと揃わないため。
+     * 単色版（themed icon）があれば白で描く。無ければ、元のアイコンを描いてから地の明るさと違う所だけを白く残す
+     * （白黒にしただけだと白い丸や灰色の板になり、ほかの白い絵柄と揃わないため）。
+     * 最後に絵柄の外枠を測り、丸に収まる大きさまで縮めて真ん中に置く。ロゴが端まで広がったアイコンが丸で切れないように。
      */
     private fun drawAppGlyph(canvas: Canvas, icon: Drawable, sizePx: Int, circleClip: Boolean = true) {
+        val glyph = whiteGlyph(icon, sizePx)
+        val box = opaqueBounds(glyph) ?: return
+        val bw = box.width().toFloat()
+        val bh = box.height().toFloat()
+        // 縦横の長い方を直径の 62% まで、対角線を 86% までにすると、丸の内側に余白を残して収まる
+        val scale = minOf(1f, sizePx * 0.62f / maxOf(bw, bh), sizePx * 0.86f / Math.hypot(bw.toDouble(), bh.toDouble()).toFloat())
+        val w = bw * scale
+        val h = bh * scale
+        val dst = RectF((sizePx - w) / 2f, (sizePx - h) / 2f, (sizePx + w) / 2f, (sizePx + h) / 2f)
         canvas.save()
         if (circleClip) canvas.clipPath(Path().apply { addCircle(sizePx / 2f, sizePx / 2f, sizePx / 2f, Path.Direction.CW) })
-        val mono = (icon as? AdaptiveIconDrawable)?.monochrome
-        if (mono != null) {
-            val d = mono.mutate()
-            val ext = sizePx / 4
-            d.setBounds(-ext, -ext, sizePx + ext, sizePx + ext)
-            d.colorFilter = PorterDuffColorFilter(Ui.TEXT, PorterDuff.Mode.SRC_IN)
-            d.draw(canvas)
-        } else {
-            canvas.drawBitmap(logoMask(icon, sizePx), 0f, 0f, null)
-        }
+        canvas.drawBitmap(glyph, box, dst, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
         canvas.restore()
     }
 
-    /** アイコンのロゴだけを白で抜き出す。地の明るさは、アイコンの内側の輪の上の値の中央値とする */
-    private fun logoMask(icon: Drawable, sizePx: Int): Bitmap {
-        val src = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-        val d = icon.mutate()
-        if (d is AdaptiveIconDrawable) {
-            val ext = sizePx / 4
-            d.setBounds(-ext, -ext, sizePx + ext, sizePx + ext)
-        } else {
-            d.setBounds(0, 0, sizePx, sizePx)
+    /**
+     * 白い絵柄を、適応アイコンの層の全体（見える範囲の 1.5 倍）の大きさの板に描く。
+     * 見える範囲の外まで描いておくのは、はみ出したロゴを縮めて丸に収めるため。
+     */
+    private fun whiteGlyph(icon: Drawable, sizePx: Int): Bitmap {
+        val full = sizePx * 3 / 2
+        val out = Bitmap.createBitmap(full, full, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val mono = (icon as? AdaptiveIconDrawable)?.monochrome
+        if (mono != null) {
+            val d = mono.mutate()
+            d.setBounds(0, 0, full, full)
+            d.colorFilter = PorterDuffColorFilter(Ui.TEXT, PorterDuff.Mode.SRC_IN)
+            d.draw(canvas)
+            return out
         }
-        d.draw(Canvas(src))
-        val px = IntArray(sizePx * sizePx)
-        src.getPixels(px, 0, sizePx, 0, 0, sizePx, sizePx)
+        val d = icon.mutate()
+        if (d is AdaptiveIconDrawable) d.setBounds(0, 0, full, full)
+        else d.setBounds((full - sizePx) / 2, (full - sizePx) / 2, (full + sizePx) / 2, (full + sizePx) / 2)
+        d.draw(canvas)
+        val px = IntArray(full * full)
+        out.getPixels(px, 0, full, 0, 0, full, full)
         fun lum(c: Int) = (0.299f * Color.red(c) + 0.587f * Color.green(c) + 0.114f * Color.blue(c)) / 255f
 
-        val c = sizePx / 2f
+        // 地の明るさは、見える範囲の内側の輪の上の値の中央値とする
+        val c = full / 2f
         val ring = (0 until 48).map { i ->
             val a = Math.PI * 2 * i / 48
-            val x = (c + Math.cos(a) * sizePx * 0.40).toInt().coerceIn(0, sizePx - 1)
-            val y = (c + Math.sin(a) * sizePx * 0.40).toInt().coerceIn(0, sizePx - 1)
-            px[y * sizePx + x]
+            val x = (c + Math.cos(a) * sizePx * 0.40).toInt().coerceIn(0, full - 1)
+            val y = (c + Math.sin(a) * sizePx * 0.40).toInt().coerceIn(0, full - 1)
+            px[y * full + x]
         }
         val opaque = ring.filter { Color.alpha(it) > 128 }
         // 輪の大半が透明なら、アイコン自体がロゴの形をしている。そのときは形をそのまま白にする
@@ -195,22 +197,26 @@ class IconFactory(private val context: Context) {
             val k = if (bg == null) a else a * ((Math.abs(lum(p) - bg) - 0.08f) * 3f).coerceIn(0f, 1f)
             px[i] = Color.argb((k * 255).toInt(), Color.red(Ui.TEXT), Color.green(Ui.TEXT), Color.blue(Ui.TEXT))
         }
-        src.setPixels(px, 0, sizePx, 0, 0, sizePx, sizePx)
-        return src
+        out.setPixels(px, 0, full, 0, 0, full, full)
+        return out
     }
 
-    /** Muse はパッケージ名が分からないので、名前で当てる（docs/spec.md「ドック」） */
-    private fun ownGlyph(key: AppKey): Int? = APP_GLYPHS[key.packageName]
-        ?: R.drawable.ic_app_muse.takeIf { Launcher.catalog(context).label(key).trim().equals("Muse", ignoreCase = true) }
-
-    companion object {
-        /** 自作の絵柄に置き換えるアプリ（ドックの決済・AI のフォルダの中身）。ホームの4つは設定の IconRef で持つ */
-        private val APP_GLYPHS = mapOf(
-            "jp.ne.paypay.android.app" to R.drawable.ic_app_paypay,
-            "jp.co.rakuten.pay" to R.drawable.ic_app_rakuten_pay,
-            "com.google.android.apps.walletnfcrel" to R.drawable.ic_app_wallet,
-            "com.anthropic.claude" to R.drawable.ic_app_claude,
-        )
+    /** 薄いにじみを拾わないよう、ある程度濃い点だけで外枠を測る。何も描かれていなければ null */
+    private fun opaqueBounds(bmp: Bitmap): Rect? {
+        val w = bmp.width
+        val h = bmp.height
+        val px = IntArray(w * h)
+        bmp.getPixels(px, 0, w, 0, 0, w, h)
+        var l = w; var t = h; var r = -1; var b = -1
+        for (y in 0 until h) for (x in 0 until w) {
+            if (Color.alpha(px[y * w + x]) > 60) {
+                if (x < l) l = x
+                if (x > r) r = x
+                if (y < t) t = y
+                if (y > b) b = y
+            }
+        }
+        return if (r < 0) null else Rect(l, t, r + 1, b + 1)
     }
 
     private inline fun remember(key: String, make: () -> Bitmap): Bitmap = cache.get(key) ?: make().also { cache.put(key, it) }
