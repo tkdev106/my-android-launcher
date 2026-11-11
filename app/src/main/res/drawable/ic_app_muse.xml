@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Muse: 太い M の輪郭（元のアイコンの形） -->
+<!-- Muse: 左下から跳ね上がって右上へ抜ける、一筆書きの M（元のアイコンの筆致） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path android:pathData="M5.5 18.5V8.2a2.4 2.4 0 0 1 4.2-1.6L12 9.2l2.3-2.6a2.4 2.4 0 0 1 4.2 1.6v10.3h-3.3v-7.1L12 15l-3.2-3.6v7.1z" android:strokeColor="#FFF1F0EC" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    <path android:pathData="M3.5 11Q5.5 7.8 6.8 6.8Q7.9 6 7.7 7.6L6.2 16.2Q6 17.4 6.8 16.2L11.2 8.2Q12.3 6.6 12.2 8.3L11.7 16.2Q11.7 17.4 12.4 16.2L15.9 10.1Q16.8 8.9 16.7 10.4L16.6 16.4Q16.7 17.7 17.6 16.6L20.5 13" android:strokeColor="#FFF1F0EC" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
 </vector>
