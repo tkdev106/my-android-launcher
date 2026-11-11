@@ -145,6 +145,10 @@ class DrawerView(
                 icon.contentDescription = entry.app.label
                 icon.load(entry.app.key to iconPx) { icons.app(entry.app.key, iconPx, own = false) }
                 icon.setOnClickListener { onLaunch(entry.app, it) }
+                icon.setOnLongClickListener {
+                    Launcher.catalog(context).openDetails(entry.app.key, it)
+                    true
+                }
             }
             is DrawerEntry.Folder -> {
                 icon.contentDescription = entry.name

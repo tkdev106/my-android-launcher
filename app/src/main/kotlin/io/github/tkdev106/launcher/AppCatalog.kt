@@ -70,4 +70,11 @@ class AppCatalog(private val context: Context) {
         val options = from?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
         launcherApps.startMainActivity(ComponentName(info.componentName.packageName, info.componentName.className), info.user, bounds, options)
     }
+
+    /** アプリ情報の画面（アンインストールもここから）。メニューを挟まず直接開く。項目が1つだけなら選ばせる意味が無いため */
+    fun openDetails(key: AppKey, from: View?) {
+        val info = info(key) ?: return
+        val options = from?.let { ActivityOptions.makeScaleUpAnimation(it, 0, 0, it.width, it.height).toBundle() }
+        launcherApps.startAppDetailsActivity(ComponentName(info.componentName.packageName, info.componentName.className), info.user, null, options)
+    }
 }
