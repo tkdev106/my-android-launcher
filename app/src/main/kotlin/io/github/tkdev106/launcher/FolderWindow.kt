@@ -40,7 +40,8 @@ class FolderWindow(context: Context, private val onLaunch: (AppKey, View) -> Uni
 
     var onClosed: () -> Unit = {}
 
-    fun open(apps: List<AppKey>, anchor: View) {
+    /** own はドロワーのフォルダなら false。ドロワーでは自作の絵柄を使わないため */
+    fun open(apps: List<AppKey>, anchor: View, own: Boolean = true) {
         val icons = Launcher.icons(context)
         val catalog = Launcher.catalog(context)
         val columns = apps.size.coerceIn(1, COLUMNS)
@@ -52,7 +53,7 @@ class FolderWindow(context: Context, private val onLaunch: (AppKey, View) -> Uni
             chunk.forEachIndexed { i, key ->
                 val v = IconView(context)
                 v.contentDescription = catalog.label(key)
-                v.load(key to iconPx) { icons.app(key, iconPx) }
+                v.load(Triple(key, iconPx, own)) { icons.app(key, iconPx, own = own) }
                 v.setOnClickListener {
                     onLaunch(key, it)
                     close()

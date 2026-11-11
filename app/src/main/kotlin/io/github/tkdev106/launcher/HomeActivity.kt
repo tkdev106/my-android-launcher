@@ -86,7 +86,7 @@ class HomeActivity : Activity() {
             addView(appsRow, lp(top = 22))
             addView(dock, lp(top = 12))
         }
-        drawer = DrawerView(this, onLaunch = { app, v -> catalog.launch(app.key, v) }, onOpenFolder = { f, v -> openFolder(f.apps.map { it.key }, v) }, onClose = ::closeDrawer)
+        drawer = DrawerView(this, onLaunch = { app, v -> catalog.launch(app.key, v) }, onOpenFolder = { f, v -> openFolder(f.apps.map { it.key }, v, own = false) }, onClose = ::closeDrawer)
         drawer.visibility = View.GONE
         folder = FolderWindow(this) { key, v -> catalog.launch(key, v) }
         folder.onClosed = ::overlayChanged
@@ -239,8 +239,8 @@ class HomeActivity : Activity() {
         root.active = true
     }
 
-    private fun openFolder(apps: List<io.github.tkdev106.launcher.core.AppKey>, anchor: View) {
-        folder.open(apps, anchor)
+    private fun openFolder(apps: List<io.github.tkdev106.launcher.core.AppKey>, anchor: View, own: Boolean = true) {
+        folder.open(apps, anchor, own)
         root.active = false
         overlayChanged()
     }

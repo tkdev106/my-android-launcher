@@ -116,8 +116,8 @@ class DrawerView(
         Launcher.background.execute {
             list.forEach {
                 when (it) {
-                    is DrawerEntry.App -> icons.app(it.app.key, iconPx)
-                    is DrawerEntry.Folder -> icons.folder(it.name, it.apps.map { a -> a.key }, iconPx)
+                    is DrawerEntry.App -> icons.app(it.app.key, iconPx, own = false)
+                    is DrawerEntry.Folder -> icons.folder(it.name, it.apps.map { a -> a.key }, iconPx, own = false)
                 }
             }
         }
@@ -143,13 +143,13 @@ class DrawerView(
         when (entry) {
             is DrawerEntry.App -> {
                 icon.contentDescription = entry.app.label
-                icon.load(entry.app.key to iconPx) { icons.app(entry.app.key, iconPx) }
+                icon.load(entry.app.key to iconPx) { icons.app(entry.app.key, iconPx, own = false) }
                 icon.setOnClickListener { onLaunch(entry.app, it) }
             }
             is DrawerEntry.Folder -> {
                 icon.contentDescription = entry.name
                 val keys = entry.apps.map { it.key }
-                icon.load(entry.name to keys) { icons.folder(entry.name, keys, iconPx) }
+                icon.load(entry.name to keys) { icons.folder(entry.name, keys, iconPx, own = false) }
                 icon.setOnClickListener { onOpenFolder(entry, it) }
             }
         }

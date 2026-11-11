@@ -43,10 +43,11 @@ class IconFactory(private val context: Context) {
 
     fun clear() = cache.evictAll()
 
-    fun app(key: AppKey, sizePx: Int, border: Boolean = true, fill: Int = Ui.CIRCLE): Bitmap =
-        remember("app:${key.flatten()}:$sizePx:$border:$fill") {
-            val own = ownGlyph(key)
-            if (own != null) return@remember glyph(own, sizePx, fill, border)
+    /** own が false なら自作の絵柄を使わない。ドロワーでは他のアプリと見た目を揃えるため（docs/spec.md「見た目」） */
+    fun app(key: AppKey, sizePx: Int, border: Boolean = true, fill: Int = Ui.CIRCLE, own: Boolean = true): Bitmap =
+        remember("app:${key.flatten()}:$sizePx:$border:$fill:$own") {
+            val res = if (own) ownGlyph(key) else null
+            if (res != null) return@remember glyph(res, sizePx, fill, border)
             val bmp = base(sizePx, border, fill)
             val info = Launcher.catalog(context).info(key)
             val icon = info?.getIcon(context.resources.displayMetrics.densityDpi)
@@ -54,8 +55,8 @@ class IconFactory(private val context: Context) {
             bmp
         }
 
-    fun folder(name: String, apps: List<AppKey>, sizePx: Int): Bitmap =
-        remember("folder:$name:${apps.joinToString { it.packageName }}:$sizePx") {
+    fun folder(name: String, apps: List<AppKey>, sizePx: Int, own: Boolean = true): Bitmap =
+        remember("folder:$name:${apps.joinToString { it.packageName }}:$sizePx:$own") {
             val bmp = base(sizePx, border = true, fill = Ui.CIRCLE)
             val canvas = Canvas(bmp)
             val cell = sizePx * 0.30f
@@ -66,9 +67,9 @@ class IconFactory(private val context: Context) {
                 val y = start + (i / 2) * (cell + gap)
                 canvas.save()
                 canvas.translate(x, y)
-                val own = ownGlyph(key)
-                if (own != null) {
-                    val d = context.getDrawable(own)!!.mutate()
+                val res = if (own) ownGlyph(key) else null
+                if (res != null) {
+                    val d = context.getDrawable(res)!!.mutate()
                     d.setBounds(0, 0, cell.toInt(), cell.toInt())
                     d.setTint(Ui.TEXT)
                     d.draw(canvas)
