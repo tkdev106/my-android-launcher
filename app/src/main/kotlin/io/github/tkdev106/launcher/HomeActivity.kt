@@ -3,6 +3,7 @@ package io.github.tkdev106.launcher
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.app.WallpaperManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -127,6 +128,24 @@ class HomeActivity : Activity() {
         weather.update(weatherSource.cached(today))
         weatherSource.refresh(today) { weather.update(it) }
         nowPlayingSource.start()
+        window.decorView.post { pinWallpaper() }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        pinWallpaper()
+    }
+
+    /**
+     * 壁紙を真ん中に固定する（docs/spec.md「壁紙はスクロールしない」）。何も指定しないと、システムは最後に位置を指定した
+     * アプリ（更新の間に一瞬だけ表に出た Pixel のホームなど）の値を使い続けるので、壁紙が横にずれて見える
+     */
+    private fun pinWallpaper() {
+        val token = window.decorView.windowToken ?: return
+        WallpaperManager.getInstance(this).apply {
+            setWallpaperOffsetSteps(0f, 0f)
+            setWallpaperOffsets(token, 0.5f, 0.5f)
+        }
     }
 
     override fun onPause() {
