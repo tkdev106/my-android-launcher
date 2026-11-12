@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Claude: 長さと向きが少しずつ不揃いな光の筋（元のロゴの星） -->
+<!-- Claude: 真ん中で詰まってつながる、長さと向きが不揃いな12本の筋（元のロゴの星） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <path android:pathData="M12.00 10.20L12.00 3.80M13.01 10.51L15.69 6.53M13.51 11.02L18.54 7.75M13.80 12.06L19.00 12.24M13.62 12.79L19.55 15.68M12.82 13.60L14.91 17.70M12.06 13.80L12.27 19.60M10.97 13.47L7.87 17.90M10.46 12.93L5.14 16.12M10.20 12.09L5.21 12.36M10.47 11.05L5.72 8.08M11.05 10.47L8.34 6.15" android:strokeColor="#FFF1F0EC" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    <path android:pathData="M11.70 11.37L8.16 3.88M12.12 11.31L13.34 4.30M12.47 11.48L17.54 5.84M12.69 11.87L20.06 10.46M12.68 12.16L19.92 13.82M12.53 12.46L18.10 17.32M12.38 12.59L16.28 18.72M11.96 12.70L11.52 19.84M11.63 12.59L7.74 18.86M11.42 12.39L5.64 16.20M11.30 11.98L3.82 11.72M11.43 11.60L5.08 7.10" android:strokeColor="#FFF1F0EC" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
 </vector>
