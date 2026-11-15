@@ -46,6 +46,19 @@ class ConfigTest {
     }
 
     @Test
+    fun `壁紙のフォルダも保存して読み戻せる`() {
+        val config = DefaultConfig.create(emptyList()).copy(wallpaperFolder = "content://x/tree/primary%3APictures%2FWallpapers")
+        assertEquals(config, ConfigCodec.decode(ConfigCodec.encode(config)))
+    }
+
+    @Test
+    fun `壁紙のフォルダが無い設定は替えない設定として読める`() {
+        val withFolder = DefaultConfig.create(emptyList()).copy(wallpaperFolder = "content://x/tree/a")
+        val old = ConfigCodec.encode(withFolder).replace(Regex(",?\\s*\"wallpaperFolder\"\\s*:\\s*\"[^\"]*\""), "")
+        assertEquals(null, ConfigCodec.decode(old).wallpaperFolder)
+    }
+
+    @Test
     fun `壊れた設定は読めないとして例外になる`() {
         assertThrows(JsonException::class.java) { ConfigCodec.decode("{\"version\": 2, \"homeApps\": [") }
         assertThrows(JsonException::class.java) { ConfigCodec.decode("{\"version\": 1}") }

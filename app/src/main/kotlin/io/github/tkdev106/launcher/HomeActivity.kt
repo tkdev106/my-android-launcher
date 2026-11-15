@@ -58,9 +58,14 @@ class HomeActivity : Activity() {
     private var overlayBack: OnBackInvokedCallback? = null
 
     private var agendaReadAt = 0L
+    private val wallpaperRotator by lazy { WallpaperRotator(applicationContext) }
 
     private val tick = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) = updateClockAndAgenda(force = false)
+        override fun onReceive(context: Context, intent: Intent) {
+            updateClockAndAgenda(force = false)
+            // ホームを開いたまま1時間たったときも替える
+            rotateWallpaper()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,6 +134,11 @@ class HomeActivity : Activity() {
         weatherSource.refresh(today) { weather.update(it) }
         nowPlayingSource.start()
         window.decorView.post { pinWallpaper() }
+        rotateWallpaper()
+    }
+
+    private fun rotateWallpaper() {
+        wallpaperRotator.rotateInBackground(config?.wallpaperFolder)
     }
 
     override fun onAttachedToWindow() {

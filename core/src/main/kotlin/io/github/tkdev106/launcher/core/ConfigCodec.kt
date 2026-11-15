@@ -12,6 +12,7 @@ object ConfigCodec {
         "dockRight" to encodeFolder(config.dockRight),
         "drawerButtonIcon" to Json.str(config.drawerButtonIcon),
         "drawerFolders" to Json.arr(config.drawerFolders.map(::encodeFolder)),
+        "wallpaperFolder" to Json.str(config.wallpaperFolder),
     ).stringify()
 
     /** 壊れていたら JsonException を投げる。呼び出し側は初期値に戻す */
@@ -26,6 +27,8 @@ object ConfigCodec {
             dockRight = decodeFolder(root["dockRight"] ?: throw JsonException("dockRight が無い")),
             drawerButtonIcon = root["drawerButtonIcon"].string,
             drawerFolders = root["drawerFolders"].list.map(::decodeFolder),
+            // 後から足した項目なので、無い設定もそのまま読む（版を上げてほかの設定を作り直させない）
+            wallpaperFolder = root["wallpaperFolder"].string,
         )
     }
 

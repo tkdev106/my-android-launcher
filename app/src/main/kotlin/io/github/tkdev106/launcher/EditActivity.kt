@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.provider.Settings
 import android.view.Gravity
 import android.view.WindowInsets
@@ -125,7 +126,30 @@ class EditActivity : Activity() {
             }
         }
         row("", "フォルダを足す") { askText("新しいフォルダの名前", "") { save(Editing.addFolder(config, it)) } }
+
+        header("壁紙（1時間ごとに無作為に替える）")
+        val folder = c.wallpaperFolder
+        if (folder == null) {
+            row("替えない", "フォルダを選ぶ") { pickWallpaperFolder() }
+        } else {
+            row(folderLabel(folder), "選び直す", "やめる") { which ->
+                if (which == 0) pickWallpaperFolder() else stopWallpaper(folder)
+            }
+        }
     }
+
+    private fun pickWallpaperFolder() {
+        startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQUEST_WALLPAPER)
+    }
+
+    private fun stopWallpaper(folder: String) {
+        runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(folder), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        save(config.copy(wallpaperFolder = null))
+    }
+
+    /** content URI のままだと読めないので、フォルダの道筋（primary:Pictures/Wallpapers の後ろ）だけを見せる */
+    private fun folderLabel(folder: String): String =
+        runCatching { DocumentsContract.getTreeDocumentId(Uri.parse(folder)).substringAfter(':') }.getOrNull()?.ifEmpty { null } ?: folder
 
     /** 元に戻すと、初期の自作の絵柄（初期と違うアプリに変えた場所はアプリの単色アイコン）にする */
     private fun defaultIcon(slot: IconSlot): String? {
@@ -219,6 +243,18 @@ class EditActivity : Activity() {
     @Deprecated("Activity#onActivityResult の上書き（AndroidX を入れないため旧 API を使う）")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_WALLPAPER) {
+            val tree = data?.data
+            if (resultCode != RESULT_OK || tree == null) return
+            // 次に起動したあとも読めるよう、読む許可を持ち続ける
+            contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            config.wallpaperFolder?.takeIf { it != tree.toString() }?.let {
+                runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(it), Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            }
+            WallpaperRotator(this).reset()
+            save(config.copy(wallpaperFolder = tree.toString()))
+            return
+        }
         val slot = pendingIconSlot ?: return
         val uri = data?.data
         if (requestCode != REQUEST_ICON || resultCode != RESULT_OK || uri == null) return
@@ -245,6 +281,7 @@ class EditActivity : Activity() {
 
     companion object {
         private const val REQUEST_ICON = 10
+        private const val REQUEST_WALLPAPER = 11
     }
 }
 

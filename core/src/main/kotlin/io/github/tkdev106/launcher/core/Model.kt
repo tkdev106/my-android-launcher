@@ -66,6 +66,8 @@ data class LauncherConfig(
     val dockRight: Folder,
     val drawerButtonIcon: String?,
     val drawerFolders: List<Folder>,
+    /** 壁紙を1時間ごとに替えるときの画像のフォルダ（編集モードで選んだフォルダの content URI）。null なら替えない */
+    val wallpaperFolder: String? = null,
 ) {
     companion object {
         const val HOME_APPS = 4
