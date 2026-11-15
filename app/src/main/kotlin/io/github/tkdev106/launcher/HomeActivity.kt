@@ -229,9 +229,9 @@ class HomeActivity : Activity() {
         if (drawer.visibility == View.VISIBLE || folder.isOpen) return
         when (GestureClassifier.actionFor(g)) {
             HomeAction.OPEN_DRAWER -> openDrawer()
-            HomeAction.OPEN_NOTIFICATIONS -> global(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
+            HomeAction.OPEN_NOTIFICATIONS -> if (!StatusBar.openNotifications(this)) global(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
             HomeAction.OPEN_RECENTS -> global(AccessibilityService.GLOBAL_ACTION_RECENTS)
-            HomeAction.OPEN_QUICK_SETTINGS -> global(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
+            HomeAction.OPEN_QUICK_SETTINGS -> if (!StatusBar.openQuickSettings(this)) global(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
             HomeAction.LOCK_SCREEN -> global(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
             HomeAction.OPEN_EDIT_MODE -> startActivity(Intent(this, EditActivity::class.java))
         }

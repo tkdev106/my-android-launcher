@@ -4,7 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 
 /**
- * 全体操作だけに使うユーザー補助（docs/spec.md「作り方」で常駐を認めた1つ目）。
+ * 最近使ったアプリと画面を消すだけに使うユーザー補助（docs/spec.md「作り方」で常駐を認めた1つ目）。通知とクイック設定は StatusBar で開く。
  * イベントは受け取らず、ホームから呼ばれたときに performGlobalAction するだけ。
  */
 class GestureAccessibilityService : AccessibilityService() {
