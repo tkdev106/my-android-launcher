@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- 通知とクイック設定をユーザー補助なしで開くため（StatusBar.kt） -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+    <!-- ダブルタップで画面を消すとき、画面のタイムアウトを一時的に縮めるため（ScreenOff.kt） -->
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
     <!-- Android 11 以降の見える範囲の制限で、ドロワーに並べるアプリが欠けないようにする -->
     <queries>
@@ -61,18 +63,14 @@
                 android:resource="@xml/accessibility_service" />
         </service>
 
-        <receiver
-            android:name=".LockAdmin"
-            android:exported="true"
-            android:label="@string/lock_admin_label"
-            android:permission="android.permission.BIND_DEVICE_ADMIN">
-            <meta-data
-                android:name="android.app.device_admin"
-                android:resource="@xml/lock_admin" />
-            <intent-filter>
-                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
-            </intent-filter>
-        </receiver>
+        <activity
+            android:name=".ScreenOff$BlackActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:screenOrientation="portrait"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Launcher.Black" />
 
         <service
             android:name=".MediaListenerService"

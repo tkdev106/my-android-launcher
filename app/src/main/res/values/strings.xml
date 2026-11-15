@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Launcher</string>
     <string name="edit_mode">ランチャーの編集</string>
-    <string name="lock_admin_label">ランチャーの画面オフ</string>
     <string name="accessibility_label">ランチャーのジェスチャー</string>
     <string name="accessibility_description">ホームのジェスチャーで、最近使ったアプリを開くために使います。画面の内容は読みません。オンにすると一部の決済アプリが使えなくなります。</string>
     <string name="media_listener_label">ランチャーの再生中の曲</string>

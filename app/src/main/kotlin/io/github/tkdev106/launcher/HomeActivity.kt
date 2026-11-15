@@ -122,6 +122,8 @@ class HomeActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // 画面を消す途中で落ちていたら、縮めたままのタイムアウトを戻す
+        ScreenOff.restore(this)
         bindConfig(force = false)
         updateClockAndAgenda()
         registerReceiver(tick, IntentFilter().apply {
@@ -237,11 +239,12 @@ class HomeActivity : Activity() {
         }
     }
 
-    /** 端末管理の権限で消す。まだ許可が無ければ、ユーザー補助がオンならそれで消し、どちらも無ければ許可を求める */
+    /** タイムアウトを縮めて消す。許可が無ければ、ユーザー補助がオンならそれで消し、どちらも無ければ許可を求める */
     private fun lockScreen() {
-        if (LockAdmin.lock(this)) return
+        if (ScreenOff.start(this)) return
         if (GestureAccessibilityService.perform(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)) return
-        startActivity(LockAdmin.requestIntent(this))
+        Toast.makeText(this, "「システム設定の変更」を許可すると、ダブルタップで画面を消せます", Toast.LENGTH_LONG).show()
+        startActivity(ScreenOff.requestIntent(this))
     }
 
     private fun global(action: Int) {
