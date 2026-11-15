@@ -232,9 +232,16 @@ class HomeActivity : Activity() {
             HomeAction.OPEN_NOTIFICATIONS -> if (!StatusBar.openNotifications(this)) global(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
             HomeAction.OPEN_RECENTS -> global(AccessibilityService.GLOBAL_ACTION_RECENTS)
             HomeAction.OPEN_QUICK_SETTINGS -> if (!StatusBar.openQuickSettings(this)) global(AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS)
-            HomeAction.LOCK_SCREEN -> global(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
+            HomeAction.LOCK_SCREEN -> lockScreen()
             HomeAction.OPEN_EDIT_MODE -> startActivity(Intent(this, EditActivity::class.java))
         }
+    }
+
+    /** 端末管理の権限で消す。まだ許可が無ければ、ユーザー補助がオンならそれで消し、どちらも無ければ許可を求める */
+    private fun lockScreen() {
+        if (LockAdmin.lock(this)) return
+        if (GestureAccessibilityService.perform(AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)) return
+        startActivity(LockAdmin.requestIntent(this))
     }
 
     private fun global(action: Int) {

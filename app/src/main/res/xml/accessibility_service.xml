@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 全体操作（最近使ったアプリ・画面を消す）にだけ使う。画面の中身もイベントも受け取らない -->
+<!-- 全体操作（最近使ったアプリ）にだけ使う。画面の中身もイベントも受け取らない -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:canRetrieveWindowContent="false"
     android:description="@string/accessibility_description"

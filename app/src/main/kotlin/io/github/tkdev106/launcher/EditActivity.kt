@@ -71,7 +71,8 @@ class EditActivity : Activity() {
         val c = config
 
         header("許可")
-        row("ユーザー補助（ジェスチャー）", "設定を開く") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        row("ダブルタップで画面を消す（端末管理）", "許可する") { startActivity(LockAdmin.requestIntent(this)) }
+        row("ユーザー補助（最近使ったアプリ。オンにすると PayPay が使えない）", "設定を開く") { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         row("通知へのアクセス（再生中の曲）", "設定を開く") {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
                 .putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, ComponentName(this, MediaListenerService::class.java).flattenToString()))
